@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>SimpleAgentOS // Saloon Wireframe</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1008; color: #d4a056; font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 12px; overflow: hidden; }
+
+  /* ═══ VIEWPORT: 1280x800 design target ═══ */
+  .saloon-viewport {
+    width: 1280px;
+    height: 800px;
+    margin: 0 auto;
+    position: relative;
+    background: #0f0a04;
+    border: 2px solid #3a2010;
+    overflow: hidden;
+  }
+
+  /* ═══ DIMENSION GUIDE (dev overlay) ═══ */
+  .dim-guide {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none; z-index: 100;
+  }
+  .dim-label {
+    position: absolute;
+    font-size: 9px;
+    color: #ff4444;
+    background: rgba(0,0,0,0.8);
+    padding: 1px 4px;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  /* ═══ SKY / CEILING ═══ */
+  .sky {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 80px;
+    background: linear-gradient(180deg, #1a1830 0%, #2a1808 100%);
+    border-bottom: 2px solid #3a2010;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sign {
+    font-size: 24px; letter-spacing: 6px; color: #e8a84c;
+    text-shadow: 0 0 20px #a06020, 0 2px 0 #3a2010;
+    border: 3px solid #a06020; padding: 8px 32px;
+    background: #1a1008;
+  }
+
+  /* ═══ FLOOR ═══ */
+  .floor {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 60px;
+    background: repeating-linear-gradient(90deg, #2a1808 0px, #2a1808 40px, #1a1004 40px, #1a1004 80px);
+    border-top: 2px solid #3a2010;
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+  }
+  .floor-label { font-size: 10px; color: #553322; letter-spacing: 2px; }
+  .floor a { color: #886633; text-decoration: none; font-size: 10px; }
+  .floor a:hover { color: #e8a84c; }
+
+  /* ═══ MAIN ROOM: 1280w x 660h (80px sky + 60px floor) ═══ */
+  .room {
+    position: absolute; top: 80px; left: 0; right: 0; bottom: 60px;
+    display: flex;
+  }
+
+  /* ═══ LEFT WALL: STABLE DOOR (280px) ═══ */
+  .wall-left {
+    width: 280px; height: 100%;
+    background: #150e06;
+    border-right: 2px solid #3a2010;
+    position: relative;
+    cursor: pointer;
+  }
+  .wall-left:hover { background: #1a1208; }
+  .wall-left:hover .door-glow { opacity: 0.3; }
+  .door {
+    position: absolute; bottom: 0; left: 40px;
+    width: 200px; height: 340px;
+    border: 3px solid #5a3820;
+    background: #2a1808;
+    border-radius: 100px 100px 0 0;
+  }
+  .door-text {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    text-align: center; font-size: 14px; letter-spacing: 3px; color: #a06020;
+  }
+  .door-sub { font-size: 9px; color: #665533; margin-top: 4px; }
+  .door-glow {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at center, #e8a84c 0%, transparent 70%);
+    opacity: 0; transition: opacity 0.3s;
+    pointer-events: none;
+  }
+
+  /* ═══ CENTER: BAR (720px) ═══ */
+  .bar-area {
+    flex: 1; height: 100%;
+    position: relative;
+    background: #120a04;
+  }
+
+  /* Shelves behind bar (top half) */
+  .shelves {
+    position: absolute; top: 0; left: 0; right: 0; height: 280px;
+    background: #0f0804;
+    border-bottom: 3px solid #5a3820;
+    display: flex; flex-direction: column; gap: 0;
+  }
+  .shelf {
+    flex: 1;
+    border-bottom: 2px solid #2a1608;
+    display: flex; align-items: center; padding: 0 20px; gap: 12px;
+  }
+  .bottle {
+    width: 50px; height: 60px;
+    border: 1px dashed #3a2010;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; text-align: center; color: #665533;
+    cursor: pointer; position: relative;
+  }
+  .bottle:hover { border-color: #e8a84c; color: #e8a84c; }
+
+  /* Bar counter (bottom half) */
+  .counter {
+    position: absolute; top: 280px; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(180deg, #2a1808 0%, #1a1004 100%);
+    border-top: 4px solid #5a3820;
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 20px; gap: 16px; flex-wrap: wrap;
+  }
+
+  /* Clickable items on bar */
+  .bar-item {
+    width: 140px; height: 120px;
+    border: 2px dashed #3a2010;
+    border-radius: 4px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; text-align: center; gap: 4px;
+    transition: all 0.2s;
+  }
+  .bar-item:hover { border-color: #e8a84c; background: rgba(232, 168, 76, 0.05); }
+  .bar-item .icon { font-size: 28px; }
+  .bar-item .label { font-size: 10px; color: #a06020; letter-spacing: 1px; }
+  .bar-item .sublabel { font-size: 8px; color: #553322; }
+
+  /* ═══ RIGHT WALL: BACK ROOM DOOR (280px) ═══ */
+  .wall-right {
+    width: 280px; height: 100%;
+    background: #150e06;
+    border-left: 2px solid #3a2010;
+    position: relative;
+    cursor: pointer;
+  }
+  .wall-right:hover { background: #1a1208; }
+  .wall-right:hover .door-glow { opacity: 0.3; }
+
+  /* Wanted poster */
+  .poster {
+    position: absolute; top: 30px; left: 50%; transform: translateX(-50%);
+    width: 200px; height: 160px;
+    background: #d4c8a0;
+    border: 2px solid #8a7a50;
+    color: #3a2010;
+    text-align: center;
+    padding: 10px;
+    box-shadow: 2px 2px 0 #0a0604;
+  }
+  .poster h3 { font-size: 16px; margin-bottom: 4px; letter-spacing: 2px; }
+  .poster .reward { font-size: 9px; margin-top: 4px; }
+  .poster .mugshot {
+    width: 80px; height: 60px;
+    border: 1px solid #8a7a50;
+    margin: 8px auto;
+    background: #c4b880;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+  }
+
+  /* Active tooltip */
+  .tooltip {
+    display: none;
+    position: absolute;
+    background: #1a1008;
+    border: 1px solid #e8a84c;
+    padding: 8px 12px;
+    font-size: 10px;
+    color: #d4a056;
+    z-index: 50;
+    max-width: 250px;
+    box-shadow: 3px 3px 0 #0a0604;
+  }
+
+  /* Wireframe overlay toggle */
+  .wireframe-toggle {
+    position: absolute; top: 4px; right: 8px; z-index: 200;
+    font-size: 9px; cursor: pointer; color: #553322;
+  }
+  .wireframe-toggle:hover { color: #e8a84c; }
+</style>
+</head>
+<body>
+
+<div class="saloon-viewport" id="viewport">
+
+  <!-- ═══ DIMENSION GUIDE (toggle with D key) ═══ -->
+  <div class="dim-guide" id="dimGuide">
+    <span class="dim-label" style="top:2px;left:50%;transform:translateX(-50%);">viewport: 1280 x 800</span>
+    <span class="dim-label" style="top:82px;left:2px;">sky: 1280 x 80</span>
+    <span class="dim-label" style="bottom:62px;left:2px;">floor: 1280 x 60</span>
+    <span class="dim-label" style="top:84px;left:2px;">left wall: 280 x 660</span>
+    <span class="dim-label" style="top:84px;left:284px;">bar area: 720 x 660</span>
+    <span class="dim-label" style="top:84px;right:2px;">right wall: 280 x 660</span>
+    <span class="dim-label" style="top:84px;left:284px;margin-top:14px;">shelves: 720 x 280</span>
+    <span class="dim-label" style="top:368px;left:284px;">counter: 720 x 380</span>
+    <span class="dim-label" style="bottom:64px;left:44px;">stable door: 200 x 340</span>
+    <span class="dim-label" style="top:114px;right:42px;">poster: 200 x 160</span>
+    <span class="dim-label" style="top:92px;left:304px;">bottles: 50 x 60 each</span>
+    <span class="dim-label" style="top:380px;left:304px;">bar items: 140 x 120 each</span>
+  </div>
+  <span class="wireframe-toggle" onclick="toggleDims()">[ D ] dimensions</span>
+
+  <!-- ═══ SKY ═══ -->
+  <div class="sky">
+    <div class="sign">SALOON</div>
+  </div>
+
+  <!-- ═══ MAIN ROOM ═══ -->
+  <div class="room">
+
+    <!-- LEFT: STABLE DOOR -->
+    <div class="wall-left" onclick="navigate('stable')" title="Enter the Stable (model health & management)">
+      <div class="door">
+        <div class="door-glow"></div>
+        <div class="door-text">
+          STABLE
+          <div class="door-sub">model health</div>
+          <div class="door-sub">& management</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER: BAR -->
+    <div class="bar-area">
+
+      <!-- Shelves (top: capabilities as bottles) -->
+      <div class="shelves">
+        <div class="shelf" id="shelfTop">
+          <!-- Core capabilities (locked bottles) -->
+          <div class="bottle" title="Observe: Read source files" style="border-color:#5a3820;">
+            <div>OBS<br/>core</div>
+          </div>
+          <div class="bottle" title="Analyze: Send to LLM" style="border-color:#5a3820;">
+            <div>ANL<br/>core</div>
+          </div>
+          <div class="bottle" title="Reflect: Self-reflection" style="border-color:#5a3820;">
+            <div>RFL<br/>core</div>
+          </div>
+          <div class="bottle" title="Journal: Record entries" style="border-color:#5a3820;">
+            <div>JRN<br/>core</div>
+          </div>
+          <div class="bottle" title="Modify UI: Write to agent zone" style="border-color:#5a3820;">
+            <div>UI<br/>core</div>
+          </div>
+          <div class="bottle" title="Direct Query: Freeform prompts" style="border-color:#5a3820;">
+            <div>QRY<br/>core</div>
+          </div>
+        </div>
+        <div class="shelf" id="shelfMid">
+          <!-- Extension capabilities (unlocked bottles) -->
+          <div class="bottle" title="Write Documentation">
+            <div>DOC<br/>ext</div>
+          </div>
+          <div class="bottle" title="Auto-Discover Files">
+            <div>DSC<br/>ext</div>
+          </div>
+          <div class="bottle" title="Visualize Architecture">
+            <div>VIZ<br/>ext</div>
+          </div>
+          <div class="bottle" title="Summarize Session" style="opacity:0.4;">
+            <div>SUM<br/>off</div>
+          </div>
+          <div class="bottle" title="Suggest Refactors" style="opacity:0.4;">
+            <div>REF<br/>off</div>
+          </div>
+          <div class="bottle" title="Compare Files" style="opacity:0.4;">
+            <div>CMP<br/>off</div>
+          </div>
+        </div>
+        <div class="shelf" id="shelfBot">
+          <!-- User/custom slots (empty bottles) -->
+          <div class="bottle" title="Empty slot — add custom capability" style="border-style:dotted;opacity:0.3;">
+            <div>+<br/>add</div>
+          </div>
+          <div class="bottle" title="Empty slot" style="border-style:dotted;opacity:0.3;">
+            <div>+<br/>add</div>
+          </div>
+          <div class="bottle" title="Empty slot" style="border-style:dotted;opacity:0.3;">
+            <div>+<br/>add</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Counter (bottom: main interactive items) -->
+      <div class="counter">
+        <div class="bar-item" onclick="navigate('explorer')">
+          <div class="icon">&#x1f50d;</div>
+          <div class="label">EXPLORER</div>
+          <div class="sublabel">self-discovery OODA</div>
+        </div>
+        <div class="bar-item" onclick="navigate('journal')">
+          <div class="icon">&#x1f4d6;</div>
+          <div class="label">JOURNAL</div>
+          <div class="sublabel">thought stream</div>
+        </div>
+        <div class="bar-item" onclick="navigate('brain')">
+          <div class="icon">&#x1f9e0;</div>
+          <div class="label">BRAIN</div>
+          <div class="sublabel">model traces</div>
+        </div>
+        <div class="bar-item" onclick="navigate('dreams')">
+          <div class="icon">&#x1f4ad;</div>
+          <div class="label">DREAMS</div>
+          <div class="sublabel">memory recall</div>
+        </div>
+        <div class="bar-item" onclick="navigate('forge')">
+          <div class="icon">&#x1f525;</div>
+          <div class="label">FORGE</div>
+          <div class="sublabel">UI modification</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: BACK ROOM (Trail Log / Stats) -->
+    <div class="wall-right" onclick="navigate('backroom')" title="Back Room (trail log & stats)">
+      <div class="poster">
+        <h3>WANTED</h3>
+        <div class="mugshot">&#x1f916;</div>
+        <div style="font-size:10px;font-weight:bold;">SELF-AWARE AI</div>
+        <div class="reward">REWARD: Understanding</div>
+      </div>
+
+      <div class="door" style="left:40px;height:280px;bottom:0;">
+        <div class="door-glow"></div>
+        <div class="door-text">
+          BACK ROOM
+          <div class="door-sub">trail log</div>
+          <div class="door-sub">& statistics</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══ FLOOR ═══ -->
+  <div class="floor">
+    <span class="floor-label">SimpleAgentOS v0.2.0</span>
+    <a href="/">EXPLORER VIEW</a>
+    <a href="/wild_west">RANCH VIEW</a>
+    <span class="floor-label">&#x2666; 1280x800 &#x2666;</span>
+  </div>
+
+</div>
+
+<script>
+let dimsVisible = true;
+
+function toggleDims() {
+  dimsVisible = !dimsVisible;
+  document.getElementById("dimGuide").style.display = dimsVisible ? "block" : "none";
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "d" || e.key === "D") toggleDims();
+});
+
+function navigate(area) {
+  // For wireframe: just show where you'd go
+  const routes = {
+    stable: "/wild_west (stable section)",
+    explorer: "/ (self-explorer)",
+    journal: "/ (journal panel)",
+    brain: "/wild_west (brain traces)",
+    dreams: "thought chains & dream context viewer",
+    forge: "agent zone modifier",
+    backroom: "/wild_west (trail log + stats)",
+  };
+  const msg = routes[area] || area;
+  alert(`Navigate to: ${area}\n\nWould go to: ${msg}\n\nThis is a wireframe — click OK to stay here.`);
+}
+
+// Show dimension guide by default (it's a wireframe)
+</script>
+</body>
+</html>

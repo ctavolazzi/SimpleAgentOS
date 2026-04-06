@@ -459,6 +459,10 @@ async def serve_index():
 async def serve_wild_west():
     return FileResponse(PROJECT_DIR / "wild_west.html")
 
+@app.get("/saloon")
+async def serve_saloon():
+    return FileResponse(PROJECT_DIR / "saloon_wireframe.html")
+
 @app.get("/api/health")
 async def health():
     return {"status": "ok", "explorer": explorer.status()}
