@@ -1,0 +1,126 @@
+{
+  "$schema": "SimpleAgentOS Capability Registry v1",
+  "description": "Defines what the agent can do. Locked capabilities are core system functions. Unlocked capabilities can be modified, added, or extended by the agent itself.",
+  "capabilities": [
+    {
+      "id": "observe",
+      "name": "Observe",
+      "description": "Read source files from the project directory",
+      "locked": true,
+      "category": "core",
+      "endpoint": null,
+      "enabled": true
+    },
+    {
+      "id": "analyze",
+      "name": "Analyze",
+      "description": "Send file content to LLM for architectural analysis",
+      "locked": true,
+      "category": "core",
+      "endpoint": null,
+      "enabled": true
+    },
+    {
+      "id": "reflect",
+      "name": "Reflect",
+      "description": "Generate 1-sentence self-reflection after each analysis",
+      "locked": true,
+      "category": "core",
+      "endpoint": null,
+      "enabled": true
+    },
+    {
+      "id": "journal",
+      "name": "Journal",
+      "description": "Record observations, analyses, and reflections to the session journal",
+      "locked": true,
+      "category": "core",
+      "endpoint": "/api/explorer/journal",
+      "enabled": true
+    },
+    {
+      "id": "modify_ui",
+      "name": "Modify UI",
+      "description": "Write HTML/CSS/JS into the agent zone of the dashboard",
+      "locked": true,
+      "category": "core",
+      "endpoint": "/api/explorer/ui-hash",
+      "enabled": true
+    },
+    {
+      "id": "direct_query",
+      "name": "Direct Query",
+      "description": "Accept and answer freeform questions via LLM",
+      "locked": true,
+      "category": "core",
+      "endpoint": "/api/query",
+      "enabled": true
+    },
+    {
+      "id": "write_doc",
+      "name": "Write Documentation",
+      "description": "Generate markdown docs about discovered patterns",
+      "locked": false,
+      "category": "extension",
+      "endpoint": "/api/explorer/docs",
+      "enabled": true
+    },
+    {
+      "id": "auto_discover",
+      "name": "Auto-Discover Files",
+      "description": "Automatically find .py files when the exploration queue is empty",
+      "locked": false,
+      "category": "extension",
+      "endpoint": null,
+      "enabled": true
+    },
+    {
+      "id": "visualize_arch",
+      "name": "Visualize Architecture",
+      "description": "Generate visual diagrams of system architecture in the agent zone",
+      "locked": false,
+      "category": "extension",
+      "endpoint": null,
+      "enabled": true
+    },
+    {
+      "id": "summarize_session",
+      "name": "Summarize Session",
+      "description": "Generate a high-level summary of everything learned in a session",
+      "locked": false,
+      "category": "extension",
+      "endpoint": null,
+      "enabled": false
+    },
+    {
+      "id": "suggest_refactor",
+      "name": "Suggest Refactors",
+      "description": "Propose code improvements based on architectural analysis",
+      "locked": false,
+      "category": "extension",
+      "endpoint": null,
+      "enabled": false
+    },
+    {
+      "id": "compare_files",
+      "name": "Compare Files",
+      "description": "Analyze relationships and dependencies between explored files",
+      "locked": false,
+      "category": "extension",
+      "endpoint": null,
+      "enabled": false
+    },
+    {
+      "id": "custom_prompt",
+      "name": "Custom Prompt Template",
+      "description": "User-defined prompt template for analysis steps",
+      "locked": false,
+      "category": "user",
+      "endpoint": null,
+      "enabled": false,
+      "config": {
+        "template": ""
+      }
+    }
+  ]
+}

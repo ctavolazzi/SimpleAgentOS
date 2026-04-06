@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 .self_explorer/
+.pytest_cache/
 node_modules/
 core_engine/pb_data/
 core_engine/pocketbase

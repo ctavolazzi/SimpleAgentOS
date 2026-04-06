@@ -15,14 +15,35 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 
+import hashlib
+import re
+import shutil
+
+import state_db as db
+from brain import Brain
+
 LLAMA_URL = "http://127.0.0.1:8080/v1/chat/completions"
 PROJECT_DIR = Path(__file__).parent
 DOCS_DIR = PROJECT_DIR / ".self_explorer" / "docs"
+BACKUPS_DIR = PROJECT_DIR / ".self_explorer" / "backups"
 DOCS_DIR.mkdir(parents=True, exist_ok=True)
+BACKUPS_DIR.mkdir(parents=True, exist_ok=True)
+HTML_FILE = PROJECT_DIR / "self_explore.html"
+CAPS_FILE = PROJECT_DIR / "capabilities.json"
 MAX_FILE_CHARS = 1500  # Keep prompts small for fast prefill on CPU
 
-app = FastAPI(title="SimpleAgentOS Self-Explorer")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+def load_capabilities():
+    if CAPS_FILE.exists():
+        return json.loads(CAPS_FILE.read_text(encoding="utf-8"))
+    return {"capabilities": []}
+
+
+def save_capabilities(data):
+    CAPS_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+ZONE_START = "<!-- AGENT-ZONE-START -->"
+ZONE_END = "<!-- AGENT-ZONE-END -->"
 
 
 def now_iso():
@@ -34,18 +55,89 @@ def log(msg):
     print(msg, flush=True)
 
 
+app = FastAPI(title="SimpleAgentOS Self-Explorer")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+# ── Database init ──
+_conn = db.get_conn()
+db.init_db(_conn)
+# Seed capabilities from JSON if DB is empty
+if not db.get_capabilities(_conn):
+    caps_data = load_capabilities()
+    db.seed_capabilities(_conn, caps_data.get("capabilities", []))
+    log(f"  [DB] Seeded {len(caps_data.get('capabilities', []))} capabilities from capabilities.json")
+
+# ── Brain init ──
+_brain = Brain(_conn)
+# Auto-register the default local backend
+if not _brain.get_backend("local-gemma4"):
+    _brain.register("local-gemma4", LLAMA_URL, model_id="gemma-4-E4B",
+                    backend_type="llama-server")
+    log("  [BRAIN] Registered local-gemma4 backend")
+
+
 # ==================== Explorer ====================
 
 class SelfExplorer:
     def __init__(self):
-        self.journal: list[dict] = []
+        self.journal: list[dict] = []  # In-memory for SSE streaming speed
         self.running = False
         self.step_count = 0
         self.explored: list[str] = []
         self.current_file: str | None = None
         self.queue: list[str] = []
         self.docs_written = 0
+        self.ui_version = 0
+        self.ui_hash = self._get_ui_hash()
         self._task: asyncio.Task | None = None
+        self.session_id: str | None = None
+
+    @staticmethod
+    def _get_ui_hash():
+        if HTML_FILE.exists():
+            return hashlib.md5(HTML_FILE.read_bytes()).hexdigest()[:8]
+        return "none"
+
+    @staticmethod
+    def _read_agent_zone():
+        """Read the current content of the agent zone."""
+        html = HTML_FILE.read_text(encoding="utf-8")
+        start = html.find(ZONE_START)
+        end = html.find(ZONE_END)
+        if start == -1 or end == -1:
+            return None
+        return html[start + len(ZONE_START):end].strip()
+
+    def _write_agent_zone(self, new_content: str):
+        """Replace the agent zone content, with backup."""
+        html = HTML_FILE.read_text(encoding="utf-8")
+        start = html.find(ZONE_START)
+        end = html.find(ZONE_END)
+        if start == -1 or end == -1:
+            log("  [UI] ERROR: Agent zone markers not found in HTML!")
+            return False
+
+        # Backup before modifying
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_path = BACKUPS_DIR / f"self_explore_{ts}_v{self.ui_version}.html"
+        shutil.copy2(HTML_FILE, backup_path)
+        log(f"  [UI] Backup saved: {backup_path.name}")
+
+        # Inject new content
+        new_html = (
+            html[:start + len(ZONE_START)]
+            + "\n"
+            + new_content
+            + "\n"
+            + html[end:]
+        )
+        HTML_FILE.write_text(new_html, encoding="utf-8")
+        self.ui_version += 1
+        self.ui_hash = self._get_ui_hash()
+        # Persist UI version to DB
+        db.save_ui_version(_conn, self.ui_version, new_content, self.session_id)
+        log(f"  [UI] Agent zone updated (v{self.ui_version}, hash={self.ui_hash})")
+        return True
 
     def _seed_queue(self):
         self.queue = [
@@ -60,6 +152,9 @@ class SelfExplorer:
     def _journal_add(self, entry_type, content, **extra):
         entry = {"type": entry_type, "timestamp": now_iso(), "step": self.step_count, "content": content, **extra}
         self.journal.append(entry)
+        # Persist to DB (skip live "Thinking" entries that update in-place)
+        if self.session_id and entry_type not in ("Thinking",):
+            db.add_journal_entry(_conn, self.session_id, self.step_count, entry_type, content, extra.get("file"))
         return entry
 
     def _read_file(self, rel_path):
@@ -183,13 +278,33 @@ class SelfExplorer:
 
         self._journal_add("Observe", f"Reading {self.current_file} ({len(file_content)} chars)", file=self.current_file)
 
+        # ── Dream recall: have we thought about this file before? ──
+        prior_context = ""
+        priors = db.recall_prior_thoughts(_conn, file=self.current_file, limit=2)
+        if priors:
+            novel = False
+            compressed_bits = []
+            for p in priors:
+                summary = p.get("summary") or p.get("compressed") or p.get("thought", "")[:150]
+                compressed_bits.append(f"- {summary}")
+            prior_context = "\n\nPrior thoughts on this file:\n" + "\n".join(compressed_bits)
+            self._journal_add("DreamRecall", f"Found {len(priors)} prior thought(s) about {self.current_file}", file=self.current_file)
+        else:
+            novel = True
+
         # Analyze — short system prompt to minimize prefill time
+        trigger = f"File: {self.current_file}\n\n```\n{file_content}\n```\n\nWhat does this file do?"
         analysis = await self._llm_call([
             {"role": "system", "content": "You are SimpleAgentOS reading your own code. Analyze briefly what this file does and what it reveals about your architecture."},
-            {"role": "user", "content": f"File: {self.current_file}\n\n```\n{file_content}\n```\n\nWhat does this file do?"},
+            {"role": "user", "content": trigger + prior_context},
         ], max_tokens=256)
 
         self._journal_add("Musing", analysis, file=self.current_file)
+
+        # Store thought chain
+        thought_entry = db.store_thought(_conn, self.session_id, trigger, analysis, file=self.current_file)
+        if not thought_entry["is_novel"]:
+            self._journal_add("System", f"Deja vu: similar thought existed (chain {thought_entry['prior_id'][:8]})", file=self.current_file)
 
         # Reflect — very short
         reflection = await self._llm_call([
@@ -198,7 +313,63 @@ class SelfExplorer:
         ], max_tokens=80)
 
         self._journal_add("Reflection", reflection, file=self.current_file)
+
+        # Store reflection as compressed dream context for future recall
+        db.store_dream(_conn, thought_entry["id"], reflection,
+                       relevance_keys=thought_entry.get("keywords", ""))
+
         self.step_count += 1
+
+        # Modify the UI after exploring self_explore.html, or every 3 steps
+        if self.current_file == "self_explore.html" or self.step_count % 3 == 0:
+            await self._modify_ui()
+
+    async def _modify_ui(self):
+        """Ask the LLM to generate HTML for the agent zone based on what it's learned."""
+        explored_summary = ", ".join(self.explored) if self.explored else "nothing yet"
+        current_zone = self._read_agent_zone() or "(empty)"
+
+        # Build a context of what the agent has learned so far
+        insights = []
+        for entry in self.journal:
+            if entry["type"] in ("Musing", "Reflection"):
+                insights.append(f"[{entry['type']}] {entry['content'][:200]}")
+        insights_text = "\n".join(insights[-6:])  # last 6 insights to keep prompt small
+
+        self._journal_add("UIModify", f"Generating UI modification (v{self.ui_version + 1})...")
+
+        new_html = await self._llm_call([
+            {"role": "system", "content": (
+                "You are an AI agent that can modify its own dashboard UI. "
+                "Generate ONLY raw HTML (with inline CSS and JS if needed) for your agent zone. "
+                "No markdown, no code fences, no explanation — just the HTML. "
+                "The zone sits below the main dashboard in a dark terminal-style page (background: #020202, text: #00ff41). "
+                "Use inline styles. You can create visualizations, status displays, or anything that helps you understand yourself."
+            )},
+            {"role": "user", "content": (
+                f"Files explored so far: {explored_summary}\n\n"
+                f"Your recent insights:\n{insights_text}\n\n"
+                f"Current agent zone content:\n{current_zone}\n\n"
+                f"Generate new HTML for your agent zone. Build something that visualizes what you've learned about your own architecture. "
+                f"Include your name, what you've discovered, and a visual representation of your self-understanding."
+            )},
+        ], max_tokens=512)
+
+        # Clean up: strip code fences if the model wraps them anyway
+        cleaned = new_html.strip()
+        if cleaned.startswith("```"):
+            cleaned = re.sub(r"^```(?:html)?\n?", "", cleaned)
+            cleaned = re.sub(r"\n?```$", "", cleaned)
+
+        if len(cleaned) < 10 or "ERROR" in cleaned:
+            self._journal_add("Error", f"UI modification failed: response too short or error")
+            return
+
+        success = self._write_agent_zone(cleaned)
+        if success:
+            self._journal_add("UIModify", f"Dashboard updated to v{self.ui_version}. The browser will reload.")
+        else:
+            self._journal_add("Error", "Failed to write agent zone — markers missing?")
 
     async def _warmup(self):
         """Tiny query to prime the model before real work."""
@@ -221,11 +392,12 @@ class SelfExplorer:
     async def run(self, max_steps=10):
         self.running = True
         self._seed_queue()
+        self.session_id = db.create_session(_conn, {"max_steps": max_steps})
         log(f"\n{'#'*50}")
-        log(f"  SELF-EXPLORER STARTED (max_steps={max_steps})")
+        log(f"  SELF-EXPLORER STARTED (session={self.session_id[:8]}, max_steps={max_steps})")
         log(f"  Queue: {self.queue}")
         log(f"{'#'*50}")
-        self._journal_add("System", f"Started. Max steps: {max_steps}. Queue: {self.queue}")
+        self._journal_add("System", f"Started. Session: {self.session_id[:8]}. Max steps: {max_steps}.")
         await self._warmup()
 
         while self.running and self.step_count < max_steps:
@@ -241,6 +413,8 @@ class SelfExplorer:
                 break
 
         self.running = False
+        if self.session_id:
+            db.end_session(_conn, self.session_id, self.step_count, self.explored)
         log(f"\n{'#'*50}")
         log(f"  EXPLORATION COMPLETE ({self.step_count} steps)")
         log(f"{'#'*50}")
@@ -262,6 +436,8 @@ class SelfExplorer:
             "queue_size": len(self.queue),
             "journal_entries": len(self.journal),
             "docs_written": self.docs_written,
+            "ui_version": self.ui_version,
+            "ui_hash": self.ui_hash,
         }
 
 
@@ -338,12 +514,109 @@ async def stream_explorer():
                 break
     return StreamingResponse(event_gen(), media_type="text/event-stream")
 
+@app.get("/api/explorer/ui-hash")
+async def get_ui_hash():
+    """Returns current UI hash — browser polls this to detect modifications."""
+    return {"hash": explorer.ui_hash, "version": explorer.ui_version}
+
+@app.post("/api/explorer/revert")
+async def revert_ui():
+    """Revert to the most recent backup."""
+    backups = sorted(BACKUPS_DIR.glob("self_explore_*.html"))
+    if not backups:
+        return {"status": "error", "message": "No backups available"}
+    latest = backups[-1]
+    shutil.copy2(latest, HTML_FILE)
+    explorer.ui_hash = explorer._get_ui_hash()
+    explorer.ui_version = max(0, explorer.ui_version - 1)
+    log(f"  [REVERT] Restored from {latest.name}")
+    return {"status": "reverted", "from": latest.name, "ui_hash": explorer.ui_hash}
+
+@app.get("/api/explorer/backups")
+async def list_backups():
+    backups = sorted(BACKUPS_DIR.glob("self_explore_*.html"))
+    return {"backups": [b.name for b in backups], "total": len(backups)}
+
 @app.get("/api/explorer/docs")
 async def get_docs():
     docs = []
     for f in sorted(DOCS_DIR.glob("*.md")):
         docs.append({"name": f.name, "content": f.read_text(encoding="utf-8")})
     return {"docs": docs, "total": len(docs)}
+
+
+@app.get("/api/capabilities")
+async def get_capabilities_endpoint():
+    return {"capabilities": db.get_capabilities(_conn)}
+
+@app.post("/api/capabilities/{cap_id}/toggle")
+async def toggle_capability_endpoint(cap_id: str):
+    result = db.toggle_capability(_conn, cap_id)
+    if not result:
+        return {"status": "error", "message": f"Capability '{cap_id}' not found"}
+    if "error" in result:
+        return {"status": "error", "message": result["error"]}
+    log(f"  [CAPS] Toggled '{cap_id}' -> {'enabled' if result['enabled'] else 'disabled'}")
+    return {"status": "ok", **result}
+
+@app.post("/api/capabilities/add")
+async def add_capability_endpoint(request: Request):
+    body = await request.json()
+    result = db.add_capability(_conn, body)
+    log(f"  [CAPS] Added: {result['id']}")
+    return {"status": "added", **result}
+
+@app.get("/api/sessions")
+async def list_sessions():
+    return {"sessions": db.list_sessions(_conn)}
+
+@app.get("/api/sessions/{session_id}")
+async def get_session(session_id: str):
+    s = db.get_session(_conn, session_id)
+    if not s:
+        return {"status": "error", "message": "Session not found"}
+    return s
+
+@app.get("/api/sessions/{session_id}/journal")
+async def get_session_journal(session_id: str, limit: int = 100, offset: int = 0):
+    entries = db.get_journal(_conn, session_id, limit, offset)
+    return {"entries": entries, "total": db.journal_count(_conn, session_id)}
+
+@app.get("/api/stats")
+async def get_stats():
+    return db.get_stats(_conn)
+
+@app.get("/api/brain/backends")
+async def list_brain_backends():
+    return {"backends": _brain.list_backends()}
+
+@app.post("/api/brain/register")
+async def register_brain_backend(request: Request):
+    body = await request.json()
+    _brain.register(
+        name=body["name"], url=body["url"], model_id=body["model_id"],
+        backend_type=body.get("backend_type", "openai-compat"),
+        api_key_env=body.get("api_key_env"),
+        config=body.get("config"),
+    )
+    log(f"  [BRAIN] Registered backend: {body['name']} ({body['model_id']})")
+    return {"status": "registered", "name": body["name"]}
+
+@app.get("/api/brain/traces")
+async def get_brain_traces(limit: int = 50, backend: str | None = None, session: str | None = None):
+    return {"traces": _brain.get_traces(limit, backend, session)}
+
+@app.get("/api/brain/usage")
+async def get_brain_usage():
+    return _brain.get_usage_summary()
+
+@app.get("/api/brain/compare")
+async def compare_brain_models():
+    return {"models": _brain.get_model_comparison()}
+
+@app.get("/api/ui-versions")
+async def list_ui_versions():
+    return {"versions": db.get_ui_versions(_conn)}
 
 
 if __name__ == "__main__":

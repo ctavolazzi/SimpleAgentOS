@@ -52,6 +52,8 @@
   .type-Error { color: #f00; }
   .type-Thinking { color: #ff0; animation: pulse 1s infinite; }
   .type-Streaming { color: #0f0; }
+  .type-UIModify { color: #f0f; font-weight: bold; }
+  .type-DreamRecall { color: #a0f; font-style: italic; }
   .journal-content { white-space: pre-wrap; line-height: 1.5; }
   .conn-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
   .conn-ok { background: #0f0; }
@@ -113,6 +115,9 @@ llama-server (:8080)
     <h2>&gt; FILES EXPLORED</h2>
     <div class="files-list" id="filesList"></div>
 
+    <h2>&gt; CAPABILITIES <span style="color:#555;font-weight:normal;">(multitool)</span></h2>
+    <div id="capsTable" style="font-size:10px;max-height:200px;overflow-y:auto;"></div>
+
     <h2>&gt; DISCOVERY DOCS</h2>
     <div id="docsList" style="font-size:11px;color:#f0f;max-height:100px;overflow-y:auto;"></div>
   </div>
@@ -136,6 +141,27 @@ llama-server (:8080)
 
     <h2>&gt; LATEST DOC</h2>
     <div class="response-box" id="latestDoc" style="color:#f0f;">No docs yet...</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     AGENT ZONE — Everything below this line is written by the AI.
+     The explorer modifies this section as it learns about itself.
+     Do NOT put critical UI above this point inside this zone.
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="agent-zone" style="border-top: 2px solid #004411; padding: 16px; background: #020202;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <h2 style="font-size:11px;color:#006622;letter-spacing:1px;">&gt; AGENT ZONE <span id="uiVersion" style="color:#555;font-weight:normal;">v0</span></h2>
+    <div style="display:flex;gap:8px;">
+      <button class="btn" onclick="revertUI()" style="width:auto;padding:4px 12px;background:#a50;font-size:11px;" id="revertBtn" disabled>REVERT</button>
+    </div>
+  </div>
+  <div id="agent-canvas">
+<!-- AGENT-ZONE-START -->
+<div style="color:#333;font-style:italic;padding:20px;text-align:center;border:1px dashed #111;">
+  Waiting for agent to modify this zone...
+</div>
+<!-- AGENT-ZONE-END -->
   </div>
 </div>
 
@@ -322,6 +348,57 @@ async function directQuery() {
   } finally {
     document.getElementById("queryBtn").disabled = false;
   }
+}
+
+// ── Capabilities table ──
+async function loadCapabilities() {
+  try {
+    const res = await fetch(`${API}/api/capabilities`);
+    const data = await res.json();
+    const el = document.getElementById("capsTable");
+    el.innerHTML = (data.capabilities || []).map(c => {
+      const lock = c.locked ? '<span style="color:#666;">LOCKED</span>' : '';
+      const toggle = c.locked
+        ? ''
+        : `<span style="cursor:pointer;color:${c.enabled ? '#0f0' : '#f00'};" onclick="toggleCap('${c.id}')">${c.enabled ? 'ON' : 'OFF'}</span>`;
+      const color = c.enabled ? '#0a0' : '#555';
+      return `<div style="display:flex;justify-content:space-between;padding:2px 4px;border-bottom:1px solid #0a0a0a;color:${color};">
+        <span title="${escapeHtml(c.description)}">${c.name}</span>
+        <span>${lock}${toggle}</span>
+      </div>`;
+    }).join("");
+  } catch(e) {}
+}
+
+async function toggleCap(id) {
+  await fetch(`${API}/api/capabilities/${id}/toggle`, { method: "POST" });
+  loadCapabilities();
+}
+
+loadCapabilities();
+
+// ── UI hot-reload: detect when agent modifies the HTML ──
+let lastUiHash = null;
+setInterval(async () => {
+  try {
+    const res = await fetch(`${API}/api/explorer/ui-hash`);
+    const data = await res.json();
+    document.getElementById("uiVersion").textContent = `v${data.version}`;
+    if (lastUiHash && data.hash !== lastUiHash) {
+      // Agent modified the HTML — reload to pick up changes
+      console.log("[UI] Agent modified dashboard, reloading...");
+      location.reload();
+    }
+    lastUiHash = data.hash;
+    document.getElementById("revertBtn").disabled = (data.version === 0);
+  } catch (e) {}
+}, 2000);
+
+async function revertUI() {
+  if (!confirm("Revert to previous UI version?")) return;
+  const res = await fetch(`${API}/api/explorer/revert`, { method: "POST" });
+  const data = await res.json();
+  if (data.status === "reverted") location.reload();
 }
 
 function copySession() {
