@@ -21,6 +21,7 @@ import shutil
 
 import state_db as db
 from brain import Brain
+from ranch import Ranch
 
 LLAMA_URL = "http://127.0.0.1:8080/v1/chat/completions"
 PROJECT_DIR = Path(__file__).parent
@@ -74,6 +75,10 @@ if not _brain.get_backend("local-gemma4"):
     _brain.register("local-gemma4", LLAMA_URL, model_id="gemma-4-E4B",
                     backend_type="llama-server")
     log("  [BRAIN] Registered local-gemma4 backend")
+
+# ── Ranch init ──
+_ranch = Ranch(_conn)
+log("  [RANCH] Initialized (stable, corral, trail, foreman)")
 
 
 # ==================== Explorer ====================
@@ -450,6 +455,10 @@ explorer = SelfExplorer()
 async def serve_index():
     return FileResponse(PROJECT_DIR / "self_explore.html")
 
+@app.get("/wild_west")
+async def serve_wild_west():
+    return FileResponse(PROJECT_DIR / "wild_west.html")
+
 @app.get("/api/health")
 async def health():
     return {"status": "ok", "explorer": explorer.status()}
@@ -617,6 +626,31 @@ async def compare_brain_models():
 @app.get("/api/ui-versions")
 async def list_ui_versions():
     return {"versions": db.get_ui_versions(_conn)}
+
+
+# ── Ranch API ──
+
+@app.get("/api/ranch/status")
+async def ranch_status():
+    return _ranch.full_status()
+
+@app.get("/api/ranch/stable")
+async def ranch_stable():
+    return {"horses": _ranch.stable.roster()}
+
+@app.post("/api/ranch/stable/check/{name}")
+async def check_horse(name: str):
+    entry = await _ranch.stable.check_horse(name)
+    return {"name": name, "status": entry.status.value, "latency": entry.avg_latency_ms}
+
+@app.post("/api/ranch/stable/check")
+async def check_all_horses():
+    await _ranch.stable.check_all()
+    return {"horses": _ranch.stable.roster()}
+
+@app.get("/api/ranch/trail")
+async def ranch_trail(limit: int = 50):
+    return {"trail": _ranch.trail.get_trail(limit=limit)}
 
 
 if __name__ == "__main__":

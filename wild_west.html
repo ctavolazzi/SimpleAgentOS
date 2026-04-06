@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>SimpleAgentOS // Wild West Ranch</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0604; color: #d4a056; font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 13px; }
+
+  .topbar { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 2px solid #3a2010; background: #120a04; }
+  .topbar h1 { font-size: 14px; letter-spacing: 3px; color: #e8a84c; text-shadow: 0 0 10px #a06020; }
+  .topbar .nav { display: flex; gap: 16px; font-size: 11px; }
+  .topbar .nav a { color: #886633; text-decoration: none; }
+  .topbar .nav a:hover { color: #e8a84c; }
+  .topbar .nav a.active { color: #e8a84c; border-bottom: 1px solid #e8a84c; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; padding: 16px; height: calc(100vh - 50px); overflow-y: auto; }
+
+  .panel { background: #150e06; border: 1px solid #3a2010; border-radius: 4px; padding: 16px; }
+  .panel h2 { font-size: 12px; color: #a06020; letter-spacing: 2px; margin-bottom: 12px; border-bottom: 1px solid #2a1608; padding-bottom: 6px; }
+  .panel h2 span { color: #665533; font-weight: normal; font-size: 10px; }
+
+  /* Stable */
+  .horse { background: #1a1008; border: 1px solid #2a1608; border-radius: 3px; padding: 10px; margin-bottom: 8px; }
+  .horse-name { font-weight: bold; color: #e8a84c; font-size: 12px; }
+  .horse-model { color: #886633; font-size: 10px; }
+  .horse-stats { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+  .horse-stat { font-size: 10px; background: #0f0804; padding: 2px 6px; border-radius: 2px; }
+  .status-healthy { color: #4a4; }
+  .status-wild { color: #aa0; }
+  .status-sick { color: #a44; }
+  .status-lame { color: #886; }
+  .status-unknown { color: #666; }
+
+  .btn { padding: 8px 14px; border: 1px solid #3a2010; background: #2a1608; color: #e8a84c; font-family: inherit; font-size: 11px; cursor: pointer; border-radius: 3px; }
+  .btn:hover { background: #3a2818; border-color: #e8a84c; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-brand { background: #a06020; color: #0a0604; border-color: #a06020; }
+  .btn-brand:hover { background: #c08030; }
+
+  /* Corral */
+  .cap-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; border-bottom: 1px solid #1a1008; font-size: 11px; }
+  .cap-locked { color: #555; }
+  .cap-on { color: #4a4; cursor: pointer; }
+  .cap-off { color: #a44; cursor: pointer; }
+  .cap-name { flex: 1; }
+  .cap-cat { color: #665533; font-size: 9px; margin-left: 6px; }
+
+  /* Trail */
+  .trail-entry { font-size: 11px; padding: 4px 0; border-bottom: 1px solid #1a1008; color: #886633; }
+  .trail-action { color: #e8a84c; font-weight: bold; }
+  .trail-ts { color: #553322; font-size: 9px; }
+
+  /* Stats */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-card { background: #1a1008; border: 1px solid #2a1608; border-radius: 3px; padding: 10px; text-align: center; }
+  .stat-val { font-size: 22px; font-weight: bold; color: #e8a84c; }
+  .stat-label { font-size: 9px; color: #665533; letter-spacing: 1px; margin-top: 2px; }
+
+  /* Brain traces */
+  .trace { font-size: 10px; padding: 4px 6px; border-bottom: 1px solid #1a1008; display: flex; justify-content: space-between; }
+  .trace-model { color: #a06020; }
+  .trace-tokens { color: #665533; }
+  .trace-latency { color: #886633; }
+  .trace-cost { color: #4a4; }
+
+  /* Register form */
+  .form-row { display: flex; gap: 8px; margin-bottom: 6px; }
+  .form-row input { flex: 1; background: #0a0604; border: 1px solid #3a2010; color: #d4a056; padding: 4px 8px; font-family: inherit; font-size: 11px; border-radius: 2px; }
+  .form-row input:focus { border-color: #e8a84c; outline: none; }
+  .form-row select { background: #0a0604; border: 1px solid #3a2010; color: #d4a056; padding: 4px 8px; font-family: inherit; font-size: 11px; border-radius: 2px; }
+
+  /* ASCII art */
+  .ascii { font-size: 9px; line-height: 1.2; color: #3a2010; white-space: pre; text-align: center; margin: 12px 0; }
+
+  /* Scrollable */
+  .scroll { max-height: 300px; overflow-y: auto; }
+
+  @keyframes brand { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+  .branding { animation: brand 2s infinite; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>WILD WEST RANCH</h1>
+  <div class="nav">
+    <a href="/">EXPLORER</a>
+    <a href="/wild_west" class="active">RANCH</a>
+  </div>
+</div>
+
+<div class="grid">
+
+  <!-- ═══ STABLE ═══ -->
+  <div class="panel">
+    <h2>STABLE <span>horses in the barn</span></h2>
+    <div class="ascii">
+    ,--,    ___
+   /    \  /   \
+  |  O   ||     |  ~~ HORSES ~~
+   \    / | === |
+    '--'  |_____|
+    </div>
+    <div id="stableList"></div>
+    <div style="margin-top:10px;display:flex;gap:8px;">
+      <button class="btn" onclick="checkAll()">CHECK ALL</button>
+    </div>
+
+    <h2 style="margin-top:16px;">REGISTER NEW HORSE <span>add a backend</span></h2>
+    <div class="form-row">
+      <input id="regName" placeholder="name (e.g. ollama-phi4)"/>
+      <input id="regModel" placeholder="model_id"/>
+    </div>
+    <div class="form-row">
+      <input id="regUrl" placeholder="url (e.g. http://localhost:11434/v1/chat/completions)"/>
+    </div>
+    <div class="form-row">
+      <select id="regType">
+        <option value="llama-server">llama-server</option>
+        <option value="ollama">ollama</option>
+        <option value="openai-compat">openai-compat</option>
+        <option value="anthropic">anthropic</option>
+      </select>
+      <input id="regKey" placeholder="API key env var (optional)"/>
+      <button class="btn btn-brand" onclick="registerHorse()">BRAND</button>
+    </div>
+  </div>
+
+  <!-- ═══ CORRAL ═══ -->
+  <div class="panel">
+    <h2>CORRAL <span>capability fences</span></h2>
+    <div class="ascii">
+  |---|---|---|---|---|
+  |                   |
+  | capabilities here |
+  |                   |
+  |---|---|---|---|---|
+    </div>
+    <div id="corralList" class="scroll"></div>
+
+    <h2 style="margin-top:16px;">STATS <span>the full picture</span></h2>
+    <div class="stat-grid" id="statsGrid">
+      <div class="stat-card"><div class="stat-val">-</div><div class="stat-label">SESSIONS</div></div>
+      <div class="stat-card"><div class="stat-val">-</div><div class="stat-label">THOUGHTS</div></div>
+      <div class="stat-card"><div class="stat-val">-</div><div class="stat-label">DREAMS</div></div>
+      <div class="stat-card"><div class="stat-val">-</div><div class="stat-label">NOVELTY</div></div>
+      <div class="stat-card"><div class="stat-val">-</div><div class="stat-label">UI MODS</div></div>
+      <div class="stat-card"><div class="stat-val">-</div><div class="stat-label">FILES</div></div>
+    </div>
+  </div>
+
+  <!-- ═══ TRAIL LOG + BRAIN TRACES ═══ -->
+  <div class="panel">
+    <h2>TRAIL LOG <span>every step marked</span></h2>
+    <div id="trailList" class="scroll" style="max-height:200px;">
+      <div class="trail-entry" style="color:#553322;">No trail markers yet...</div>
+    </div>
+
+    <h2 style="margin-top:16px;">BRAIN TRACES <span>provenance ledger</span></h2>
+    <div id="traceList" class="scroll" style="max-height:200px;">
+      <div class="trace" style="color:#553322;">No traces yet...</div>
+    </div>
+
+    <h2 style="margin-top:16px;">MODEL COMPARISON <span>horse race results</span></h2>
+    <div id="compareList"></div>
+  </div>
+
+</div>
+
+<script>
+const API = "";
+
+async function loadStable() {
+  try {
+    const res = await fetch(`${API}/api/ranch/stable`);
+    const data = await res.json();
+    const el = document.getElementById("stableList");
+    if (!data.horses || data.horses.length === 0) {
+      el.innerHTML = '<div style="color:#553322;font-size:11px;">No horses registered</div>';
+      return;
+    }
+    el.innerHTML = data.horses.map(h => `
+      <div class="horse">
+        <div class="horse-name">${esc(h.name)} <span class="status-${h.status}">[${h.status.toUpperCase()}]</span></div>
+        <div class="horse-stats">
+          <span class="horse-stat">rides: ${h.total_rides}</span>
+          <span class="horse-stat">bucks: ${h.total_bucks}</span>
+          <span class="horse-stat">latency: ${h.avg_latency_ms}ms</span>
+          <span class="horse-stat">reliability: ${(h.reliability * 100).toFixed(0)}%</span>
+        </div>
+        <div style="margin-top:6px;">
+          <button class="btn" onclick="checkHorse('${h.name}')" style="padding:3px 8px;font-size:10px;">CHECK</button>
+        </div>
+      </div>
+    `).join("");
+  } catch(e) { console.error("stable load failed:", e); }
+}
+
+async function loadCorral() {
+  try {
+    const res = await fetch(`${API}/api/capabilities`);
+    const data = await res.json();
+    const el = document.getElementById("corralList");
+    el.innerHTML = (data.capabilities || []).map(c => {
+      const lockIcon = c.locked ? '&#x1f512;' : '';
+      const toggleCls = c.locked ? 'cap-locked' : (c.enabled ? 'cap-on' : 'cap-off');
+      const toggleText = c.locked ? 'CORE' : (c.enabled ? 'ON' : 'OFF');
+      const click = c.locked ? '' : `onclick="toggleCap('${c.id}')"`;
+      return `<div class="cap-row">
+        <span class="cap-name" title="${esc(c.description)}">${lockIcon} ${c.name}</span>
+        <span class="cap-cat">${c.category}</span>
+        <span class="${toggleCls}" ${click} style="min-width:30px;text-align:right;">${toggleText}</span>
+      </div>`;
+    }).join("");
+  } catch(e) {}
+}
+
+async function loadStats() {
+  try {
+    const res = await fetch(`${API}/api/stats`);
+    const s = await res.json();
+    const el = document.getElementById("statsGrid");
+    el.innerHTML = `
+      <div class="stat-card"><div class="stat-val">${s.total_sessions}</div><div class="stat-label">SESSIONS</div></div>
+      <div class="stat-card"><div class="stat-val">${s.total_thoughts}</div><div class="stat-label">THOUGHTS</div></div>
+      <div class="stat-card"><div class="stat-val">${s.total_dreams}</div><div class="stat-label">DREAMS</div></div>
+      <div class="stat-card"><div class="stat-val">${(s.novelty_ratio * 100).toFixed(0)}%</div><div class="stat-label">NOVELTY</div></div>
+      <div class="stat-card"><div class="stat-val">${s.total_ui_modifications}</div><div class="stat-label">UI MODS</div></div>
+      <div class="stat-card"><div class="stat-val">${s.unique_files_explored}</div><div class="stat-label">FILES</div></div>
+    `;
+  } catch(e) {}
+}
+
+async function loadTraces() {
+  try {
+    const res = await fetch(`${API}/api/brain/traces?limit=20`);
+    const data = await res.json();
+    const el = document.getElementById("traceList");
+    if (!data.traces || data.traces.length === 0) {
+      el.innerHTML = '<div class="trace" style="color:#553322;">No traces yet</div>';
+      return;
+    }
+    el.innerHTML = data.traces.map(t => {
+      const ts = t.created_at ? t.created_at.split("T")[1]?.slice(0, 8) : "";
+      return `<div class="trace">
+        <span class="trace-model">${t.model_id}</span>
+        <span class="trace-tokens">${t.prompt_tokens}→${t.completion_tokens} tok</span>
+        <span class="trace-latency">${t.latency_ms}ms</span>
+        <span class="trace-cost">$${(t.cost_usd || 0).toFixed(4)}</span>
+        <span class="trail-ts">${ts}</span>
+      </div>`;
+    }).join("");
+  } catch(e) {}
+}
+
+async function loadCompare() {
+  try {
+    const res = await fetch(`${API}/api/brain/compare`);
+    const data = await res.json();
+    const el = document.getElementById("compareList");
+    if (!data.models || data.models.length === 0) {
+      el.innerHTML = '<div style="color:#553322;font-size:11px;">No data yet — run some explorations first</div>';
+      return;
+    }
+    el.innerHTML = data.models.map(m => `
+      <div class="trace">
+        <span class="trace-model">${m.model_id}</span>
+        <span class="trace-tokens">${m.calls} calls</span>
+        <span class="trace-latency">${Math.round(m.avg_latency)}ms avg</span>
+        <span class="trace-cost">$${(m.total_cost || 0).toFixed(4)} total</span>
+      </div>
+    `).join("");
+  } catch(e) {}
+}
+
+async function loadTrail() {
+  try {
+    const res = await fetch(`${API}/api/ranch/trail?limit=20`);
+    const data = await res.json();
+    const el = document.getElementById("trailList");
+    if (!data.trail || data.trail.length === 0) {
+      el.innerHTML = '<div class="trail-entry" style="color:#553322;">No trail markers yet</div>';
+      return;
+    }
+    el.innerHTML = data.trail.map(t => {
+      const ts = t.created_at ? t.created_at.split("T")[1]?.slice(0, 8) : "";
+      return `<div class="trail-entry">
+        <span class="trail-action">${t.action}</span>
+        ${t.target ? `→ ${esc(t.target)}` : ''}
+        <span class="trail-ts">${ts} ${t.duration_ms}ms</span>
+      </div>`;
+    }).join("");
+  } catch(e) {}
+}
+
+async function checkHorse(name) {
+  await fetch(`${API}/api/ranch/stable/check/${name}`, { method: "POST" });
+  loadStable();
+}
+
+async function checkAll() {
+  await fetch(`${API}/api/ranch/stable/check`, { method: "POST" });
+  loadStable();
+}
+
+async function toggleCap(id) {
+  await fetch(`${API}/api/capabilities/${id}/toggle`, { method: "POST" });
+  loadCorral();
+}
+
+async function registerHorse() {
+  const name = document.getElementById("regName").value.trim();
+  const model = document.getElementById("regModel").value.trim();
+  const url = document.getElementById("regUrl").value.trim();
+  const type = document.getElementById("regType").value;
+  const key = document.getElementById("regKey").value.trim();
+  if (!name || !model || !url) return alert("Name, model, and URL are required");
+
+  await fetch(`${API}/api/brain/register`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ name, model_id: model, url, backend_type: type, api_key_env: key || undefined })
+  });
+  document.getElementById("regName").value = "";
+  document.getElementById("regModel").value = "";
+  document.getElementById("regUrl").value = "";
+  document.getElementById("regKey").value = "";
+  loadStable();
+}
+
+function esc(s) { return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+// Load everything
+loadStable();
+loadCorral();
+loadStats();
+loadTraces();
+loadCompare();
+loadTrail();
+
+// Auto-refresh every 5s
+setInterval(() => { loadStable(); loadStats(); loadTraces(); loadTrail(); }, 5000);
+</script>
+</body>
+</html>
