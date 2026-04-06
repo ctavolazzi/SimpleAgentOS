@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.self_explorer/
+node_modules/
+core_engine/pb_data/
+core_engine/pocketbase
+*.egg-info/
+.venv/

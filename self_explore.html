@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>SimpleAgentOS // Self-Explorer</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #050505; color: #00ff41; font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace; font-size: 13px; }
+
+  .topbar { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1px solid #004411; background: #0a0a0a; }
+  .topbar h1 { font-size: 14px; letter-spacing: 2px; }
+  .topbar .status { display: flex; gap: 12px; align-items: center; }
+  .badge { padding: 2px 10px; border-radius: 3px; font-size: 11px; font-weight: bold; }
+  .badge-offline { background: #333; color: #888; }
+  .badge-running { background: #0a0; color: #000; animation: pulse 1.5s infinite; }
+  .badge-done { background: #a50; color: #000; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+  .grid { display: grid; grid-template-columns: 320px 1fr 300px; gap: 0; height: calc(100vh - 45px); }
+
+  /* Left panel — controls + stats */
+  .panel-left { border-right: 1px solid #111; padding: 12px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+  .panel-left h2 { font-size: 11px; color: #006622; letter-spacing: 1px; margin-bottom: 4px; }
+
+  .stats { display: flex; flex-wrap: wrap; gap: 6px; }
+  .stat { background: #111; padding: 4px 8px; border-radius: 3px; font-size: 11px; }
+  .stat b { color: #0f0; }
+
+  .btn { padding: 10px; background: #00ff41; color: #000; border: none; font-weight: bold; font-family: inherit; cursor: pointer; width: 100%; font-size: 12px; }
+  .btn:hover { background: #00cc33; }
+  .btn:disabled { background: #222; color: #555; cursor: not-allowed; }
+  .btn-stop { background: #ff4141; }
+  .btn-stop:hover { background: #cc3333; }
+
+  .files-list { font-size: 11px; color: #555; max-height: 150px; overflow-y: auto; }
+  .files-list .explored { color: #0a0; }
+  .files-list .current { color: #ff0; font-weight: bold; }
+
+  /* Center panel — journal */
+  .panel-center { display: flex; flex-direction: column; }
+  .journal-header { padding: 8px 12px; border-bottom: 1px solid #111; font-size: 11px; color: #006622; }
+  .journal { flex: 1; overflow-y: auto; padding: 12px; background: #000; }
+  .journal-entry { margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #0a0a0a; }
+  .journal-meta { font-size: 10px; color: #444; margin-bottom: 2px; }
+  .journal-type { font-weight: bold; }
+  .type-Observe { color: #0a0; }
+  .type-Musing { color: #ff0; }
+  .type-Reflection { color: #0ff; }
+  .type-DocWrite { color: #f0f; }
+  .type-System { color: #666; }
+  .type-Error { color: #f00; }
+  .type-Thinking { color: #ff0; animation: pulse 1s infinite; }
+  .type-Streaming { color: #0f0; }
+  .journal-content { white-space: pre-wrap; line-height: 1.5; }
+  .conn-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+  .conn-ok { background: #0f0; }
+  .conn-err { background: #f00; }
+
+  /* Right panel — direct query + architecture */
+  .panel-right { border-left: 1px solid #111; padding: 12px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+  .panel-right h2 { font-size: 11px; color: #006622; letter-spacing: 1px; margin-bottom: 4px; }
+
+  textarea { width: 100%; background: #000; color: #00ff41; border: 1px solid #004411; padding: 8px; font-family: inherit; font-size: 12px; resize: vertical; outline: none; }
+  textarea:focus { border-color: #00ff41; }
+
+  .response-box { flex: 1; background: #000; border: 1px solid #111; padding: 8px; overflow-y: auto; white-space: pre-wrap; color: #ccc; font-size: 12px; min-height: 100px; }
+
+  .arch-diagram { background: #0a0a0a; border: 1px solid #111; padding: 10px; font-size: 11px; line-height: 1.6; color: #0a0; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>&gt; SIMPLE_AGENT_OS // SELF-EXPLORER</h1>
+  <div class="status">
+    <span id="connDot" class="conn-dot conn-err" title="server connection"></span>
+    <span id="badge" class="badge badge-offline">OFFLINE</span>
+    <span id="stepCounter" style="font-size:11px;color:#555;">step 0</span>
+    <button id="copyBtn" onclick="copySession()" title="Copy session to clipboard" style="background:none;border:1px solid #004411;color:#00ff41;cursor:pointer;padding:4px 10px;font-family:inherit;font-size:12px;">COPY</button>
+  </div>
+</div>
+
+<div class="grid">
+  <!-- LEFT: Controls -->
+  <div class="panel-left">
+    <h2>&gt; CONTROLS</h2>
+    <button class="btn" id="startBtn" onclick="startExplorer()">START EXPLORATION</button>
+    <button class="btn btn-stop" id="stopBtn" onclick="stopExplorer()" disabled>STOP</button>
+
+    <h2>&gt; STATS</h2>
+    <div class="stats" id="stats">
+      <div class="stat">files: <b>0</b></div>
+      <div class="stat">journal: <b>0</b></div>
+      <div class="stat">docs: <b>0</b></div>
+    </div>
+
+    <h2>&gt; ARCHITECTURE</h2>
+    <div class="arch-diagram">
+Browser (:1010)
+  |
+  v
+self_explore_server.py
+  |--- /api/query --> relay
+  |--- /api/explorer/* --> OODA
+  |
+  v
+llama-server (:8080)
+  Gemma-4 E4B (5GB Q4_K_M)
+  OpenAI-compat API
+    </div>
+
+    <h2>&gt; FILES EXPLORED</h2>
+    <div class="files-list" id="filesList"></div>
+
+    <h2>&gt; DISCOVERY DOCS</h2>
+    <div id="docsList" style="font-size:11px;color:#f0f;max-height:100px;overflow-y:auto;"></div>
+  </div>
+
+  <!-- CENTER: Journal -->
+  <div class="panel-center">
+    <div class="journal-header">&gt; JOURNAL_STREAM (live)</div>
+    <div class="journal" id="journal">
+      <div class="journal-entry">
+        <div class="journal-meta">Waiting for exploration to begin...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Direct Query + Docs -->
+  <div class="panel-right">
+    <h2>&gt; DIRECT QUERY</h2>
+    <textarea id="queryInput" rows="5" placeholder="Ask Gemma4 anything..."></textarea>
+    <button class="btn" id="queryBtn" onclick="directQuery()">EXECUTE</button>
+    <div class="response-box" id="queryResponse">Response appears here...</div>
+
+    <h2>&gt; LATEST DOC</h2>
+    <div class="response-box" id="latestDoc" style="color:#f0f;">No docs yet...</div>
+  </div>
+</div>
+
+<script>
+const API = "";
+let evtSource = null;
+
+async function startExplorer() {
+  const res = await fetch(`${API}/api/explorer/start`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ max_steps: 15 })
+  });
+  const data = await res.json();
+  updateUI(data);
+  connectSSE();
+  document.getElementById("startBtn").disabled = true;
+  document.getElementById("stopBtn").disabled = false;
+}
+
+async function stopExplorer() {
+  await fetch(`${API}/api/explorer/stop`, { method: "POST" });
+  document.getElementById("stopBtn").disabled = true;
+}
+
+function connectSSE() {
+  if (evtSource) evtSource.close();
+  evtSource = new EventSource(`${API}/api/explorer/stream`);
+  evtSource.onmessage = (evt) => {
+    try {
+      const data = JSON.parse(evt.data);
+      updateUI(data.status);
+      renderJournal(data.journal);
+      if (!data.status.running && data.status.step_count > 0) {
+        evtSource.close();
+        evtSource = null;
+        document.getElementById("startBtn").disabled = false;
+        document.getElementById("stopBtn").disabled = true;
+        fetchDocs();
+      }
+    } catch (e) {}
+  };
+  evtSource.onerror = () => {
+    // Reconnect after 1s if connection drops
+    if (evtSource) evtSource.close();
+    evtSource = null;
+    setTimeout(() => {
+      // Only reconnect if explorer might still be running
+      fetch(`${API}/api/explorer/status`).then(r => r.json()).then(s => {
+        if (s.running) connectSSE();
+      }).catch(() => {});
+    }, 1000);
+  };
+}
+
+// Fallback poll for initial page load (picks up running state)
+async function poll() {
+  try {
+    const [statusRes, journalRes] = await Promise.all([
+      fetch(`${API}/api/explorer/status`),
+      fetch(`${API}/api/explorer/journal?limit=100`)
+    ]);
+    const status = await statusRes.json();
+    const journal = await journalRes.json();
+    document.getElementById("connDot").className = "conn-dot conn-ok";
+    document.getElementById("connDot").title = "connected";
+    updateUI(status);
+    renderJournal(journal.entries);
+    if (status.running && !evtSource) connectSSE();
+  } catch (e) {
+    document.getElementById("connDot").className = "conn-dot conn-err";
+    document.getElementById("connDot").title = "server unreachable";
+  }
+}
+
+function updateUI(status) {
+  const badge = document.getElementById("badge");
+  if (status.running) {
+    badge.textContent = "RUNNING";
+    badge.className = "badge badge-running";
+  } else if (status.step_count > 0) {
+    badge.textContent = "COMPLETE";
+    badge.className = "badge badge-done";
+  } else {
+    badge.textContent = "OFFLINE";
+    badge.className = "badge badge-offline";
+  }
+
+  document.getElementById("stepCounter").textContent = `step ${status.step_count || 0}`;
+
+  document.getElementById("stats").innerHTML = [
+    `<div class="stat">files: <b>${status.files_explored || 0}</b></div>`,
+    `<div class="stat">journal: <b>${status.journal_entries || 0}</b></div>`,
+    `<div class="stat">docs: <b>${status.docs_written || 0}</b></div>`,
+    `<div class="stat">queue: <b>${status.queue_size || 0}</b></div>`,
+  ].join("");
+
+  const filesList = document.getElementById("filesList");
+  const explored = status.explored_files || [];
+  filesList.innerHTML = explored.map(f =>
+    f === status.current_file
+      ? `<div class="current">> ${f}</div>`
+      : `<div class="explored">${f}</div>`
+  ).join("");
+}
+
+function renderJournal(entries) {
+  const el = document.getElementById("journal");
+  const wasAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+
+  el.innerHTML = entries.map(e => {
+    const ts = e.timestamp ? e.timestamp.split("T")[1]?.slice(0, 8) : "";
+    const type = e.type || "?";
+    const file = e.file ? ` [${e.file}]` : "";
+    const content = e.content || "";
+    return `<div class="journal-entry">
+      <div class="journal-meta">${ts} <span class="journal-type type-${type}">${type}</span>${file} (step ${e.step})</div>
+      <div class="journal-content">${escapeHtml(content)}</div>
+    </div>`;
+  }).join("");
+
+  if (wasAtBottom) el.scrollTop = el.scrollHeight;
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+async function fetchDocs() {
+  try {
+    const res = await fetch(`${API}/api/explorer/docs`);
+    const data = await res.json();
+    const docsList = document.getElementById("docsList");
+    docsList.innerHTML = data.docs.map(d => `<div>${d.name}</div>`).join("");
+    if (data.docs.length > 0) {
+      document.getElementById("latestDoc").textContent = data.docs[data.docs.length - 1].content;
+    }
+  } catch (e) {}
+}
+
+async function directQuery() {
+  const input = document.getElementById("queryInput");
+  const output = document.getElementById("queryResponse");
+  if (!input.value.trim()) return;
+
+  output.textContent = "Thinking...";
+  document.getElementById("queryBtn").disabled = true;
+
+  try {
+    const res = await fetch(`${API}/api/query`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        messages: [{role: "user", content: input.value}],
+        stream: true,
+        max_tokens: 1024
+      })
+    });
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    output.textContent = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (line.startsWith("data: ") && line !== "data: [DONE]") {
+          try {
+            const payload = JSON.parse(line.slice(6));
+            const delta = payload.choices?.[0]?.delta;
+            if (delta?.reasoning_content) output.textContent += delta.reasoning_content;
+            if (delta?.content) output.textContent += delta.content;
+          } catch (e) {}
+        }
+      }
+    }
+  } catch (err) {
+    output.textContent = `ERROR: ${err.message}`;
+  } finally {
+    document.getElementById("queryBtn").disabled = false;
+  }
+}
+
+function copySession() {
+  const el = document.getElementById("journal");
+  const entries = el.querySelectorAll(".journal-entry");
+  let text = "=== SimpleAgentOS Self-Explorer Session ===\n\n";
+  entries.forEach(e => {
+    const meta = e.querySelector(".journal-meta")?.textContent || "";
+    const content = e.querySelector(".journal-content")?.textContent || "";
+    text += `${meta}\n${content}\n\n`;
+  });
+  navigator.clipboard.writeText(text.trim()).then(() => {
+    const btn = document.getElementById("copyBtn");
+    btn.textContent = "COPIED";
+    setTimeout(() => { btn.textContent = "COPY"; }, 1500);
+  });
+}
+
+// Poll on load to pick up running state
+poll();
+</script>
+</body>
+</html>

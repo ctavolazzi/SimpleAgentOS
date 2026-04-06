@@ -1,0 +1,12 @@
+core_engine/
+├── Makefile                 # The master runtime orchestrator
+├── nerve_center.py          # FastAPI relay (handles streaming & DB sync)
+├── pocketbase               # The PocketBase compiled binary
+├── pb_migrations/           # Auto-applies schema on first boot
+│   └── 1712250000_init.js   # DB schema for the 'transmissions' table
+└── frontend/                # The React HUD
+    ├── package.json         # Node dependencies (now includes 'concurrently')
+    ├── index.html           # Entry point
+    └── src/
+        ├── main.jsx         # React root
+        └── App.jsx          # The HUD interface and streaming logic
