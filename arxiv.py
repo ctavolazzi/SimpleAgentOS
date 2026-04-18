@@ -35,6 +35,36 @@ DEFAULT_CATEGORIES = [
     "astro-ph.GA",      # Galaxies
 ]
 
+PHYSICS_CATEGORIES = DEFAULT_CATEGORIES
+AI_CATEGORIES = [
+    "cs.AI",            # Artificial Intelligence
+    "cs.LG",            # Machine Learning
+    "cs.CL",            # Computation and Language
+    "cs.MA",            # Multi-Agent Systems
+]
+
+PHYSICS_KEYWORDS = {
+    "cosmology": 3, "quantum gravity": 3, "dark matter": 3, "dark energy": 3,
+    "inflation": 2, "black hole": 3, "holograph": 2, "cmb": 3,
+    "cosmic microwave": 3, "entanglement": 2, "string theory": 2,
+    "supergravity": 2, "gravitational wave": 2, "early universe": 2,
+    "quantum information": 2, "decoherence": 1, "de sitter": 2,
+    "ads/cft": 3, "holography": 2,
+}
+
+AI_KEYWORDS = {
+    "agent": 3, "multi-agent": 4, "llm": 3, "language model": 3,
+    "reasoning": 3, "tool use": 3, "tool-use": 3, "rag": 3, "retrieval": 2,
+    "self-improv": 3, "self improv": 3, "alignment": 3, "rlhf": 3,
+    "reinforcement learning": 2, "epistemic": 3,
+    "cognitive architecture": 4, "autonomous": 2, "chain of thought": 2,
+    "chain-of-thought": 2, "planning": 2, "in-context": 2,
+    "fine-tuning": 1, "benchmark": 1, "emergent": 2, "scaling": 1,
+    "safety": 2, "interpret": 2,
+}
+
+DEFAULT_TOP_N = 5
+
 
 def fetch(categories: Optional[List[str]] = None, days: int = 1,
           max_results: int = 20, timeout: int = 15) -> dict:
@@ -127,6 +157,103 @@ def fetch(categories: Optional[List[str]] = None, days: int = 1,
     }
 
 
+def score_paper(paper: dict, keywords: dict) -> tuple:
+    """Score a paper by keyword matches in title + summary.
+
+    Returns (score, matched_keywords_list). Case-insensitive substring match.
+    """
+    text = (paper.get("title", "") + " " + paper.get("summary", "")).lower()
+    matches = []
+    score = 0
+    for kw, weight in keywords.items():
+        if kw.lower() in text:
+            score += weight
+            matches.append(kw)
+    return score, matches
+
+
+def fetch_dual_pane(days: int = 2, top_n: int = DEFAULT_TOP_N,
+                    per_cat: int = 30, timeout: int = 15) -> dict:
+    """Fetch two panes: physics + AI/agents, scored by keyword relevance.
+
+    Args:
+        days: How many days back (2 default — covers weekends when no submits)
+        top_n: Top N per pane after scoring
+        per_cat: Max results per category before scoring
+    """
+    phys_raw = fetch(PHYSICS_CATEGORIES, days=days, max_results=per_cat, timeout=timeout)
+    ai_raw = fetch(AI_CATEGORIES, days=days, max_results=per_cat, timeout=timeout)
+
+    for p in phys_raw["papers"]:
+        p["score"], p["matches"] = score_paper(p, PHYSICS_KEYWORDS)
+    for p in ai_raw["papers"]:
+        p["score"], p["matches"] = score_paper(p, AI_KEYWORDS)
+
+    phys_sorted = sorted(phys_raw["papers"],
+                         key=lambda x: (x["score"], x["published"]), reverse=True)
+    ai_sorted = sorted(ai_raw["papers"],
+                       key=lambda x: (x["score"], x["published"]), reverse=True)
+
+    return {
+        "fetched_at": datetime.now().isoformat(timespec="seconds"),
+        "date_range": phys_raw["date_range"],
+        "days": days,
+        "physics": {
+            "categories": PHYSICS_CATEGORIES,
+            "papers": phys_sorted[:top_n],
+            "total_fetched": len(phys_raw["papers"]),
+        },
+        "ai": {
+            "categories": AI_CATEGORIES,
+            "papers": ai_sorted[:top_n],
+            "total_fetched": len(ai_raw["papers"]),
+        },
+    }
+
+
+def format_dual_pane_md(digest: dict) -> str:
+    """Format dual-pane digest as markdown with score annotations."""
+    def fmt_paper(p):
+        authors_str = ", ".join(p["authors"][:2])
+        if len(p["authors"]) > 2:
+            authors_str += ", et al."
+        score = p.get("score", 0)
+        matches = p.get("matches", [])
+        match_str = f" · {', '.join(matches[:4])}" if matches else ""
+        score_str = f"score {score}{match_str}" if score else "no keyword match"
+        return (f"**[{p['id']}]({p['url']})** — {p['title']}  \n"
+                f"*{authors_str}* ({p['published']} · {score_str})")
+
+    lines = []
+    lines.append("### Physics")
+    phys = digest["physics"]["papers"]
+    if phys:
+        for p in phys:
+            lines.append(fmt_paper(p))
+            lines.append("")
+    else:
+        lines.append(f"*No papers in {', '.join(digest['physics']['categories'])} "
+                     f"over last {digest.get('days', 1)}d.*")
+        lines.append("")
+
+    lines.append("### AI / Agents")
+    ai = digest["ai"]["papers"]
+    if ai:
+        for p in ai:
+            lines.append(fmt_paper(p))
+            lines.append("")
+    else:
+        lines.append(f"*No papers in {', '.join(digest['ai']['categories'])} "
+                     f"over last {digest.get('days', 1)}d.*")
+        lines.append("")
+
+    lines.append(f"*Scored from {digest['physics']['total_fetched']} physics "
+                 f"+ {digest['ai']['total_fetched']} AI papers "
+                 f"({digest['date_range'][0]}→{digest['date_range'][1]}) "
+                 f"— pulled {digest['fetched_at']}*")
+    return "\n".join(lines)
+
+
 def format_digest_md(digest: dict) -> str:
     """Format arxiv digest as markdown for daily note."""
     if not digest["papers"]:
@@ -150,13 +277,21 @@ def format_digest_md(digest: dict) -> str:
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Fetch daily arXiv digest.")
+    parser.add_argument("--mode", choices=["dual", "single"], default="dual",
+                        help="dual: physics + AI panes with scoring; single: legacy flat list")
     parser.add_argument("--categories", nargs="+", default=DEFAULT_CATEGORIES,
-                        help="arXiv category codes")
-    parser.add_argument("--days", type=int, default=1,
+                        help="arXiv category codes (single mode only)")
+    parser.add_argument("--days", type=int, default=2,
                         help="Days back to search")
     parser.add_argument("--max", type=int, default=20,
                         help="Max results per category")
+    parser.add_argument("--top", type=int, default=DEFAULT_TOP_N,
+                        help="Top N per pane (dual mode)")
     args = parser.parse_args()
 
-    digest = fetch(args.categories, args.days, args.max)
-    print(format_digest_md(digest))
+    if args.mode == "dual":
+        digest = fetch_dual_pane(days=args.days, top_n=args.top)
+        print(format_dual_pane_md(digest))
+    else:
+        digest = fetch(args.categories, args.days, args.max)
+        print(format_digest_md(digest))

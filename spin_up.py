@@ -110,17 +110,17 @@ def _fetch_news(force: bool = False) -> Tuple[dict, str]:
 
 
 def _fetch_arxiv(force: bool = False) -> Tuple[dict, str]:
-    """Fetch or cache arxiv digest."""
+    """Fetch or cache arxiv dual-pane digest (physics + AI/agents)."""
     if not force:
-        cached = _read_cache("arxiv", TTL_ARXIV)
+        cached = _read_cache("arxiv-dual", TTL_ARXIV)
         if cached:
             return cached, "cached"
     try:
-        a = arxiv.fetch()
-        _write_cache("arxiv", a)
+        a = arxiv.fetch_dual_pane(days=2, top_n=arxiv.DEFAULT_TOP_N)
+        _write_cache("arxiv-dual", a)
         return a, "ok"
     except Exception as e:
-        cached = _read_cache("arxiv", float('inf'))
+        cached = _read_cache("arxiv-dual", float('inf'))
         if cached:
             return cached, f"failed (using stale)"
         return {}, f"failed (no cache): {e}"
@@ -216,7 +216,7 @@ def _write_research_feed(a: dict, force: bool = False) -> Tuple[bool, str]:
     if status.get("research_feed") == "filled" and not force:
         return True, "skipped (already filled)"
     try:
-        md = arxiv.format_digest_md(a)
+        md = arxiv.format_dual_pane_md(a) if "physics" in a else arxiv.format_digest_md(a)
         daily_note.write_section("research_feed", md, actor="claude")
         return True, "written"
     except Exception as e:
@@ -355,7 +355,11 @@ def main():
     print(f"📋 Transcript: {_write_run_transcript(results)}")
     print(f"🌍 Weather: {w.get('current_temp_f', '?')}°F, {weather.describe(w.get('weather_code', 0))[0]}")
     print(f"📰 News: {n.get('count', 0)} stories")
-    print(f"📚 arXiv: {a.get('count', 0)} papers")
+    if "physics" in a:
+        print(f"📚 arXiv: {len(a['physics']['papers'])} phys + {len(a['ai']['papers'])} ai "
+              f"(from {a['physics']['total_fetched']}+{a['ai']['total_fetched']})")
+    else:
+        print(f"📚 arXiv: {a.get('count', 0)} papers")
     print(f"🎵 Music: {m.get('title', 'none') if m else 'none'}")
     print(f"📊 Repos: {len(repos)} scanned")
     print("=" * 60)
