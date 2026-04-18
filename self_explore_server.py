@@ -14,6 +14,7 @@ import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
+from starlette.staticfiles import StaticFiles
 
 import hashlib
 import re
@@ -32,6 +33,8 @@ BACKUPS_DIR.mkdir(parents=True, exist_ok=True)
 HTML_FILE = PROJECT_DIR / "self_explore.html"
 CAPS_FILE = PROJECT_DIR / "capabilities.json"
 MAX_FILE_CHARS = 1500  # Keep prompts small for fast prefill on CPU
+OBSIDIAN_VAULT = Path.home() / "Documents" / "Personal-Remote-Vault"
+OBSIDIAN_WAFT = OBSIDIAN_VAULT / "waft"
 
 
 def load_capabilities():
@@ -461,7 +464,7 @@ async def serve_wild_west():
 
 @app.get("/saloon")
 async def serve_saloon():
-    return FileResponse(PROJECT_DIR / "saloon_wireframe.html")
+    return FileResponse(PROJECT_DIR / "saloon.html")
 
 @app.get("/api/health")
 async def health():
@@ -655,6 +658,151 @@ async def check_all_horses():
 @app.get("/api/ranch/trail")
 async def ranch_trail(limit: int = 50):
     return {"trail": _ranch.trail.get_trail(limit=limit)}
+
+
+# ── Daily Note API (Harness) ──
+
+import daily_note as dn
+
+@app.get("/api/daily/status")
+async def daily_note_status(date: str = None):
+    """Get fill status of every section in today's daily note."""
+    try:
+        status = dn.section_status(date)
+        filled = sum(1 for v in status.values() if v == "filled")
+        total = len(status)
+        return {"date": date or datetime.now().strftime("%Y-%m-%d"),
+                "sections": status, "filled": filled, "total": total,
+                "coverage": f"{filled}/{total}"}
+    except FileNotFoundError as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/daily/sections")
+async def daily_note_sections():
+    """List all sections with their headers and permissions."""
+    return {
+        "sections": [
+            {"name": name, "header": header or "(YAML)",
+             "ai_writable": name in dn.AI_WRITABLE,
+             "gemma_writable": name in dn.GEMMA_WRITABLE}
+            for name, header in dn.SECTIONS.items()
+        ]
+    }
+
+@app.get("/api/daily/read/{section}")
+async def daily_note_read(section: str, date: str = None):
+    """Read a specific section from the daily note."""
+    try:
+        content = dn.read_section(section, date)
+        return {"section": section, "content": content,
+                "date": date or datetime.now().strftime("%Y-%m-%d")}
+    except (ValueError, FileNotFoundError) as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/daily/write/{section}")
+async def daily_note_write(section: str, request: Request):
+    """Write to a specific section. Body: {content, actor, mode}"""
+    body = await request.json()
+    content = body.get("content", "")
+    actor = body.get("actor", "gemma")  # default to gemma for API calls
+    mode = body.get("mode", "append")
+    date = body.get("date")
+    try:
+        result = dn.write_section(section, content, actor=actor, mode=mode, date=date)
+        log(f"  [DAILY] {actor} wrote to '{section}' ({mode})")
+        return result
+    except (ValueError, PermissionError) as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/daily/session-log")
+async def daily_note_session_log(request: Request):
+    """Append a structured session log entry. Body: {focus, changes, next, actor}"""
+    body = await request.json()
+    try:
+        result = dn.append_session_log(
+            focus=body.get("focus", ""),
+            changes=body.get("changes", []),
+            next_steps=body.get("next", ""),
+            actor=body.get("actor", "gemma"),
+            date=body.get("date"),
+        )
+        log(f"  [DAILY] Session log appended by {body.get('actor', 'gemma')}")
+        return result
+    except (ValueError, PermissionError) as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/daily/frontmatter")
+async def daily_note_frontmatter(request: Request):
+    """Update frontmatter fields. Body: {fields: {key: value, ...}}"""
+    body = await request.json()
+    fields = body.get("fields", {})
+    try:
+        result = dn.update_frontmatter_fields(fields, date=body.get("date"))
+        log(f"  [DAILY] Frontmatter updated: {list(fields.keys())}")
+        return result
+    except (ValueError, FileNotFoundError) as e:
+        return {"status": "error", "message": str(e)}
+
+# ── Obsidian Vault Export (waft/) ──
+
+@app.post("/api/obsidian/export-session")
+async def export_session_to_obsidian():
+    """Export current session journal to Obsidian vault as a markdown note."""
+    if not OBSIDIAN_WAFT.exists():
+        return {"status": "error", "message": "Obsidian waft/ folder not found"}
+
+    ts = datetime.now().strftime("%Y-%m-%d_%H%M")
+    session_id = explorer.session_id or "no-session"
+    filename = f"{ts}_{session_id[:8]}.md"
+    filepath = OBSIDIAN_WAFT / "sessions" / filename
+
+    lines = [
+        f"---", f"type: waft-session",
+        f"date: {datetime.now().strftime('%Y-%m-%d')}",
+        f"session_id: {session_id}",
+        f"steps: {explorer.step_count}",
+        f"files_explored: {len(explorer.explored)}", f"---", f"",
+        f"# Session {session_id[:8]}", f"",
+        f"**Date:** {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        f"**Steps:** {explorer.step_count}",
+        f"**Files:** {', '.join(explorer.explored) or 'none'}", f"",
+        f"## Journal", f"",
+    ]
+    for entry in explorer.journal:
+        ts_str = entry.get("timestamp", "")
+        if "T" in ts_str:
+            ts_str = ts_str.split("T")[1][:8]
+        etype = entry.get("type", "?")
+        content = entry.get("content", "")
+        file_ref = entry.get("file", "")
+        lines.append(f"### {ts_str} [{etype}]{' — ' + file_ref if file_ref else ''}")
+        lines.append(f"")
+        lines.append(content)
+        lines.append(f"")
+
+    filepath.parent.mkdir(parents=True, exist_ok=True)
+    filepath.write_text("\n".join(lines), encoding="utf-8")
+    log(f"  [OBSIDIAN] Exported session to {filepath}")
+
+    # Also log to daily note via harness
+    try:
+        dn.append_session_log(
+            focus="SimpleAgentOS Self-Explorer",
+            changes=[
+                f"Explorer ran {explorer.step_count} steps across {len(explorer.explored)} files",
+                f"Session exported to waft/sessions/{filename}",
+            ],
+            next_steps="Continue exploration or review generated docs",
+            actor="gemma",
+        )
+    except Exception as e:
+        log(f"  [OBSIDIAN] Daily note update failed: {e}")
+
+    return {"status": "exported", "path": str(filepath), "filename": filename}
+
+
+# Static files (must be after all explicit routes)
+app.mount("/assets", StaticFiles(directory=str(PROJECT_DIR / "assets")), name="assets")
 
 
 if __name__ == "__main__":
