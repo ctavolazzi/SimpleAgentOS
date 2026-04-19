@@ -367,6 +367,27 @@ def check_vault_and_note() -> List[Check]:
         out.append(Check(id="B8", category="vault", name="Last vault commit age",
                          status=SKIP, message="no commits or git unavailable"))
 
+    # B9: blank sections in today's note (low priority — never blocks spin-up)
+    try:
+        import blank_files as _bf
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        empties = _bf.find_daily_empties(VAULT)
+        today_e = [e for e in empties if today_str in e["path"]]
+        if today_e:
+            secs = today_e[0]["empty_sections"]
+            out.append(Check(
+                id="B9", category="vault", name="Blank sections today",
+                status=WARN,
+                message=f"{len(secs)} unfilled: {', '.join(secs)}",
+                data={"empty_sections": secs},
+            ))
+        else:
+            out.append(Check(id="B9", category="vault", name="Blank sections today",
+                             status=PASS, message="no blank sections"))
+    except Exception as e:
+        out.append(Check(id="B9", category="vault", name="Blank sections today",
+                         status=WARN, message=f"check skipped: {e}"))
+
     return out
 
 

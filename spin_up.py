@@ -349,6 +349,26 @@ def main():
 
     results["phases"]["fill"] = phase2
 
+    # Phase 3: Frontmatter sync — populate code_refs + set focus if missing
+    if not args.dry_run:
+        print("\n📎 Phase 3: Frontmatter sync...")
+        try:
+            import frontmatter as fm
+            harness_modules = [
+                "_experiments/SimpleAgentOS/spin_up.py",
+                "_experiments/SimpleAgentOS/arxiv.py",
+                "_experiments/SimpleAgentOS/weather.py",
+                "_experiments/SimpleAgentOS/local_news.py",
+                "_experiments/SimpleAgentOS/git_scanner.py",
+            ]
+            for mod in harness_modules:
+                fm.add_to_list("code_refs", mod)
+            if not fm.get_field("focus"):
+                fm.set_field("focus", "daily spin-up")
+            print("  ✓ code_refs populated, focus set")
+        except Exception as e:
+            print(f"  · frontmatter sync skipped: {e}")
+
     # Report
     print("\n" + "=" * 60)
     print(f"✅ Spin-up complete at {datetime.now().strftime('%H:%M:%S')}")
