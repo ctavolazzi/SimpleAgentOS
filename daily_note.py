@@ -34,6 +34,7 @@ DAILY_NOTES_DIR = VAULT_DIR / "Daily Notes"
 
 SECTIONS = {
     "frontmatter":          None,               # special: YAML block at top
+    "daily_reading":        "## Daily Reading",
     "location":             "## Location",
     "sitrep":               "## Sitrep",
     "research_feed":        "## Research Feed",
@@ -43,6 +44,7 @@ SECTIONS = {
     "claude_session_log":   "## Claude Code Session Log",
     "commits_today":        "## Commits Today",
     "tomorrows_top_3":      "## Tomorrow's Top 3",
+    "waft_workspace":       "## WAFT Workspace",
     # Legacy sections — kept for backward compat with older notes
     "whats_happening":      "## What's Happening",
     "focus_snapshot":       "### Current Focus Snapshot",
@@ -56,8 +58,8 @@ SECTIONS = {
 
 # Sections that AI systems should write to (vs. user-only sections)
 AI_WRITABLE = {
-    "location", "sitrep", "research_feed", "in_the_lab", "work_efforts",
-    "claude_session_log", "commits_today", "tomorrows_top_3",
+    "daily_reading", "location", "sitrep", "research_feed", "in_the_lab", "work_efforts",
+    "claude_session_log", "commits_today", "tomorrows_top_3", "waft_workspace",
     # Legacy (still writable for older notes)
     "whats_happening", "focus_snapshot", "session_log", "session_recap",
 }
@@ -307,7 +309,14 @@ def update_frontmatter_fields(fields: dict, date: Optional[str] = None) -> dict:
         # Match key line + any indented continuation lines (multi-line YAML lists)
         pattern = rf'^{re.escape(key)}:[ \t]*.*(?:\n[ \t]+.+)*'
         if isinstance(value, list):
-            yaml_list = "\n".join(f"  - {v}" for v in value)
+            def _yaml_item(v: str) -> str:
+                v = str(v)
+                # Quote values that contain YAML-special chars ([[, {, :, #, etc.)
+                if v.startswith("[[") or any(c in v for c in ('"', "'", "{", ":", "#")):
+                    escaped = v.replace('"', '\\"')
+                    return f'  - "{escaped}"'
+                return f"  - {v}"
+            yaml_list = "\n".join(_yaml_item(v) for v in value)
             replacement = f"{key}:\n{yaml_list}"
             fm_text = re.sub(pattern, replacement, fm_text, flags=re.MULTILINE)
         else:
@@ -381,18 +390,33 @@ def _strip_boilerplate(content: str, section_name: str) -> str:
 
 
 def _is_template_only(content: str) -> bool:
-    """Check if content is just template placeholders with no real data."""
-    # After stripping boilerplate, if only whitespace remains, it's template-only
+    """Return True only if every non-empty line is a known template placeholder."""
     stripped = content.strip()
     if not stripped:
         return True
-    # Check for common template patterns
     template_markers = [
         "Linked Document:", "Quick capture space",
         "Music is embedded", "No entries yet",
         "Tip: If you also write",
     ]
-    return any(m in stripped for m in template_markers)
+    # A bare bold label with no value ( **Foo**  or  **Foo:**  ) is a stub.
+    bare_label = re.compile(r"^\*\*[^*]+\*\*:?$")
+    # An empty checkbox ( - [ ] ) with nothing after it is a stub.
+    empty_checkbox = re.compile(r"^-\s*\[\s*\]\s*$")
+    for line in stripped.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if line == "---":
+            continue  # section divider = not real content
+        if bare_label.match(line):
+            continue  # empty field label = stub
+        if empty_checkbox.match(line):
+            continue  # unfilled checkbox = stub
+        if any(m in line for m in template_markers):
+            continue
+        return False  # real content found → not template-only
+    return True
 
 
 def _write_frontmatter(content: str, date: Optional[str] = None) -> dict:

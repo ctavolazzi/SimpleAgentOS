@@ -14,14 +14,16 @@ Usage:
 """
 
 import json
+import re
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Tuple
 
 import daily_note
 import commit_summary
+import waft_workspace
 
 # ── Config ──────────────────────────────────────────────────────────────────
 
@@ -130,22 +132,45 @@ def _write_commits(summary: dict, force: bool) -> Tuple[bool, str]:
         return False, f"failed: {e}"
 
 
+def _read_unchecked_top3() -> list[str]:
+    """Return unchecked items from yesterday's ## Tomorrow's Top 3 section."""
+    yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+    note = daily_note.daily_path(yesterday)
+    if not note.exists():
+        return []
+    try:
+        text = note.read_text(encoding="utf-8")
+        section = daily_note._extract_section(text, "## Tomorrow's Top 3")
+        return [
+            ln.strip()
+            for ln in section.splitlines()
+            if re.match(r"^-\s*\[ \]", ln.strip())
+        ]
+    except Exception:
+        return []
+
+
 def _write_tomorrows_top3(commits: dict, dirty: list, force: bool) -> Tuple[bool, str]:
     print("  • tomorrows_top_3...", end=" ", flush=True)
     if daily_note.section_status().get("tomorrows_top_3") == "filled" and not force:
         print("skipped (already filled)")
         return True, "skipped"
     try:
-        items = []
+        items: list[str] = []
 
-        # Dirty repos = unfinished → surface first
+        # Carry forward unchecked items from yesterday — quest continuity
+        carried = _read_unchecked_top3()
+        for item in carried[:2]:
+            items.append(item + " *(carried)*")
+
+        # Dirty repos = unfinished → surface after carries
         for d in dirty[:2]:
-            items.append(
-                f"- [ ] Commit + clean `{d['name']}` ({d['files']} dirty file(s))"
-            )
+            candidate = f"- [ ] Commit + clean `{d['name']}` ({d['files']} dirty file(s))"
+            if len(items) < 3:
+                items.append(candidate)
 
         # Most-active repo today → continue momentum
-        if commits.get("repos"):
+        if commits.get("repos") and len(items) < 3:
             by_count = sorted(
                 commits["repos"].items(),
                 key=lambda x: len(x[1]["commits"]),
@@ -160,12 +185,53 @@ def _write_tomorrows_top3(commits: dict, dirty: list, force: bool) -> Tuple[bool
         while len(items) < 3:
             items.append("- [ ] (review open work efforts)")
 
-        daily_note.write_section("tomorrows_top_3", "\n".join(items[:3]), actor="claude")
+        final_items = items[:3]
+
+        # Auto-create WEs for tomorrow's top 3
+        try:
+            import we_factory
+            from datetime import timedelta
+            tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+            we_factory.create_for_top3(final_items, date=tomorrow)
+        except Exception as e:
+            print(f"    (we_factory failed: {e})")
+
+        daily_note.write_section("tomorrows_top_3", "\n".join(final_items), actor="claude")
         print("written")
         return True, "written"
     except Exception as e:
         print(f"failed: {e}")
         return False, f"failed: {e}"
+
+
+# ── WAFT fitness ─────────────────────────────────────────────────────────────
+
+def _award_quest_fitness(done_quests: list) -> None:
+    """Award fitness delta for completed quests. Sentinel-file idempotent."""
+    today = datetime.now().strftime("%Y-%m-%d")
+    RUNS_DIR.mkdir(parents=True, exist_ok=True)
+    sentinel = RUNS_DIR / f"fitness_{today}"
+
+    if not done_quests:
+        print("  • fitness: no completed quests")
+        return
+    if sentinel.exists():
+        print("  • fitness: skipped (already awarded today)")
+        return
+
+    delta = min(len(done_quests) * 0.1, 1.0)
+    try:
+        sys.path.insert(0, str(waft_workspace.WAFT_PROJECT))
+        from waft import BeingSystem
+        bs = BeingSystem(waft_workspace.WAFT_PROJECT)
+        being = bs.get_or_create_the_one()
+        old = getattr(being, "fitness", 0.0)
+        being.fitness = min(old + delta, 1.0)
+        bs.save_being(being)
+        sentinel.touch()
+        print(f"  • fitness: +{delta:.1f} ({old:.2f} → {being.fitness:.2f}) · {len(done_quests)} quest(s)")
+    except Exception as e:
+        print(f"  • fitness: failed — {e}")
 
 
 # ── EOD Summary ─────────────────────────────────────────────────────────────
@@ -327,6 +393,25 @@ def main():
 
         ok, s = _write_eod_summary(commits, dirty, note_state)
         phase2["eod_summary"] = {"ok": ok, "status": s}
+
+        # Write session-end entry to being journal
+        total_c = commits.get("total_commits", 0)
+        waft_data = waft_workspace.fetch()
+        quests = waft_data.get("quests", [])
+        done = [q for q in quests if q.get("complete")]
+        incomplete = [q for q in quests if not q.get("complete")]
+        details = (
+            [f"DONE: {q['task'][:60]}" for q in done]
+            + [f"OPEN: {q['task'][:60]}" for q in incomplete]
+            + [f"commits today: {total_c}"]
+        )
+        waft_workspace.write_being_journal_entry(
+            "session_end",
+            f"wrap_up · {len(done)}/{len(quests)} quests complete · {total_c} commit(s)",
+            details=details,
+            being_state=waft_data.get("being"),
+        )
+        _award_quest_fitness(done)
     else:
         print("  (dry-run: skipping writes)")
 

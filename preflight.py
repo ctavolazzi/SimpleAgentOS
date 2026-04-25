@@ -100,7 +100,7 @@ def run(cmd, timeout=10, cwd=None):
 
 
 def module_importable(name: str) -> bool:
-    rc, _, _ = run([sys.executable, "-c", f"import {name}"], timeout=5)
+    rc, _, _ = run([sys.executable, "-c", f"import {name}"], timeout=5, cwd=str(HERE))
     return rc == 0
 
 
@@ -562,17 +562,24 @@ def check_environment() -> List[Check]:
         data={"branch": branch},
     ))
 
-    # E4: MCP diagnostic
+    # E4: MCP diagnostic — splits local vs remote failures
     if MCP_DIAGNOSTIC.exists():
         rc, sout, _ = run([sys.executable, str(MCP_DIAGNOSTIC)], timeout=30)
-        green = sout.count("✅")
-        warn = sout.count("⚠️")
-        red = sout.count("❌")
-        st = PASS if green >= 2 and red == 0 else (WARN if green >= 1 else FAIL)
+        server_lines = [l.strip() for l in sout.splitlines()
+                        if l.strip().startswith(("✅", "❌", "⚠️"))
+                        and not any(k in l for k in ("OK:", "Warning:", "Error:", "Some servers"))]
+        green       = sum(1 for l in server_lines if l.startswith("✅"))
+        warn        = sum(1 for l in server_lines if l.startswith("⚠️"))
+        red_local   = sum(1 for l in server_lines if l.startswith("❌") and "[REMOTE]" not in l)
+        red_remote  = sum(1 for l in server_lines if l.startswith("❌") and "[REMOTE]" in l)
+        # Only local failures block — remote failures are outside our control
+        st = PASS if (red_local == 0 and warn == 0) else (WARN if red_local == 0 else FAIL)
+        msg = f"{green} ok · {warn} warn · {red_local} local_fail · {red_remote} remote_fail"
         out.append(Check(
             id="E4", category="env", name="MCP servers",
-            status=st, message=f"{green} ok · {warn} warn · {red} fail",
-            data={"green": green, "warn": warn, "fail": red},
+            status=st, message=msg,
+            data={"green": green, "warn": warn,
+                  "local_fail": red_local, "remote_fail": red_remote},
         ))
     else:
         out.append(Check(id="E4", category="env", name="MCP servers",
