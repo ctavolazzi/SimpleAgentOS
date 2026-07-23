@@ -14,9 +14,13 @@ from datetime import datetime
 from pathlib import Path
 
 
-def summarize_today(repo_paths: list) -> dict:
+def summarize_today(repo_paths: list, date: str = None) -> dict:
     """
-    Scan each repo for commits since midnight by ctavolazzi.
+    Scan each repo for commits by ctavolazzi on a given day.
+
+    date: YYYY-MM-DD. Defaults to the current calendar day ("since midnight").
+    Pass an explicit date when wrap-up runs after midnight so the tally covers
+    the day being closed out, not the few minutes of the new one.
 
     Returns:
     {
@@ -38,7 +42,13 @@ def summarize_today(repo_paths: list) -> dict:
         "total_commits": 0,
         "total_repos_touched": 0,
         "generated_at": datetime.now().isoformat(),
+        "date": date or datetime.now().strftime("%Y-%m-%d"),
     }
+
+    if date:
+        since_args = [f"--since={date} 00:00", f"--until={date} 23:59:59"]
+    else:
+        since_args = ["--since=midnight"]
 
     for repo_path in repo_paths:
         p = Path(repo_path)
@@ -47,7 +57,7 @@ def summarize_today(repo_paths: list) -> dict:
 
         try:
             log_out = subprocess.check_output(
-                ["git", "log", "--since=midnight", "--author=Christopher",
+                ["git", "log", *since_args, "--author=Christopher",
                  "--oneline", "--no-merges"],
                 cwd=p, text=True, stderr=subprocess.DEVNULL
             ).strip()
@@ -89,8 +99,9 @@ def summarize_today(repo_paths: list) -> dict:
 
         # Overall diff stat for the day
         try:
+            base_ref = f"HEAD@{{{date} 00:00}}" if date else "HEAD@{midnight}"
             diff_lines = subprocess.check_output(
-                ["git", "diff", "--stat", "HEAD@{midnight}", "HEAD"],
+                ["git", "diff", "--stat", base_ref, "HEAD"],
                 cwd=p, text=True, stderr=subprocess.DEVNULL
             ).strip().splitlines()
             stat_summary = diff_lines[-1].strip() if diff_lines else ""

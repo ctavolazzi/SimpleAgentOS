@@ -31,11 +31,48 @@ WORKSPACE    = Path.home() / "Code"
 VAULT_BACKUP = WORKSPACE / "tools" / "vault-backup.sh"
 RUNS_DIR     = Path.home() / ".wrap_up" / "runs"
 
+# Text that spin-up leaves in the Hub/Journal scaffolds. If any of these
+# survive to wrap-up, the sibling container file was never filled during the
+# session — the failure mode that hid a full day's work on 2026-07-10.
+PLACEHOLDER_MARKERS = (
+    "To be populated",
+    "(none yet)",
+    "(pending)",
+    "(current model)",
+    "(check on startup)",
+)
+
+
+# ── Logical day ──────────────────────────────────────────────────────────────
+
+def _resolve_date(cli_date: str = None) -> str:
+    """
+    Decide which day this wrap-up closes out.
+
+    An evening ritual routinely runs after midnight. Closing out the NEW
+    calendar day would tally zero commits and write into a note that doesn't
+    exist yet (the 2026-07-19T00:xx problem). Resolution order:
+      1. Explicit --date wins.
+      2. Before 06:00, if yesterday's note exists and today's doesn't,
+         wrap up yesterday — that's the day still being lived.
+      3. Otherwise the current calendar day.
+    """
+    if cli_date:
+        return cli_date
+    now = datetime.now()
+    today = now.strftime("%Y-%m-%d")
+    if now.hour < 6:
+        yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
+        if daily_note.exists(yesterday) and not daily_note.exists(today):
+            print(f"🌙 After midnight — wrapping up {yesterday} (logical day)")
+            return yesterday
+    return today
+
 
 # ── Logging to daily note ────────────────────────────────────────────────────
 
 def _log(phase: str, msg: str, changes: list = None, files: list = None,
-         next_steps: str = "", context: str = ""):
+         next_steps: str = "", context: str = "", date: str = None):
     """Append compact journal entry to claude_session_log. Never raises."""
     try:
         daily_note.append_session_log(
@@ -44,6 +81,7 @@ def _log(phase: str, msg: str, changes: list = None, files: list = None,
             files=files or [],
             next_steps=next_steps,
             context=context,
+            date=date,
         )
     except Exception:
         pass
@@ -72,10 +110,10 @@ def _discover_repos() -> list:
 
 # ── Phase 1: Gather ──────────────────────────────────────────────────────────
 
-def _gather_commits(repos: list) -> Tuple[dict, str]:
+def _gather_commits(repos: list, date: str = None) -> Tuple[dict, str]:
     print("  • commits...", end=" ", flush=True)
     try:
-        summary = commit_summary.summarize_today(repos)
+        summary = commit_summary.summarize_today(repos, date=date)
         total = summary["total_commits"]
         touched = summary["total_repos_touched"]
         print(f"{total} commit(s) in {touched} repo(s)")
@@ -85,10 +123,10 @@ def _gather_commits(repos: list) -> Tuple[dict, str]:
         return {}, f"failed: {e}"
 
 
-def _gather_note_state() -> Tuple[dict, str]:
+def _gather_note_state(date: str = None) -> Tuple[dict, str]:
     print("  • note state...", end=" ", flush=True)
     try:
-        status = daily_note.section_status()
+        status = daily_note.section_status(date)
         filled = [k for k, v in status.items() if v == "filled"]
         empty  = [k for k, v in status.items() if v == "empty"]
         print(f"{len(filled)} filled, {len(empty)} empty")
@@ -115,26 +153,59 @@ def _gather_dirty(repos: list) -> Tuple[list, str]:
     return dirty, "ok"
 
 
+# ── Sibling-file completeness (Hub + Journal) ────────────────────────────────
+
+def _check_sibling_files(date_str: str) -> list[str]:
+    """Return human-readable warnings for Hub/Journal files that are still
+    just spin-up placeholders at wrap-up time. Never raises."""
+    warnings: list[str] = []
+    vault = daily_note.VAULT_DIR
+    targets = {
+        "Hub":     vault / "Hubs" / f"{date_str}_hub.md",
+        "Journal": vault / "Claude Journal" / f"{date_str}.md",
+    }
+    for label, path in targets.items():
+        try:
+            if not path.exists():
+                warnings.append(f"{label} missing ({path.name})")
+                continue
+            text = path.read_text(encoding="utf-8")
+            hits = sorted({m for m in PLACEHOLDER_MARKERS if m in text})
+            # Journal: also flag an empty ## Notes section
+            if label == "Journal":
+                notes = daily_note._extract_section(text, "## Notes").strip()
+                if not notes:
+                    hits = sorted(set(hits) | {"empty ## Notes"})
+            if hits:
+                warnings.append(f"{label} still has placeholders: {', '.join(hits)}")
+        except Exception as e:
+            warnings.append(f"{label} check failed ({type(e).__name__})")
+    return warnings
+
+
 # ── Phase 2: Write ───────────────────────────────────────────────────────────
 
-def _write_commits(summary: dict, force: bool) -> Tuple[bool, str]:
+def _write_commits(summary: dict, force: bool, date: str = None) -> Tuple[bool, str]:
     print("  • commits_today...", end=" ", flush=True)
-    if daily_note.section_status().get("commits_today") == "filled" and not force:
-        print("skipped (already filled)")
-        return True, "skipped"
+    # commits_today is an END-OF-DAY tally by definition. spin-up fills it in
+    # the morning with a provisional "no commits yet" — which is stale (often
+    # flat wrong) by evening. Wrap-up is the authority here, so it ALWAYS
+    # refreshes rather than honoring the morning "filled" flag. (Historically
+    # this skip left "0 commits today" on days that had commits — 2026-07-10.)
     try:
         md = commit_summary.format_markdown(summary)
-        daily_note.write_section("commits_today", md, actor="claude")
-        print("written")
-        return True, "written"
+        daily_note.write_section("commits_today", md, actor="claude", date=date)
+        print("refreshed (EOD tally)")
+        return True, "refreshed"
     except Exception as e:
         print(f"failed: {e}")
         return False, f"failed: {e}"
 
 
-def _read_unchecked_top3() -> list[str]:
-    """Return unchecked items from yesterday's ## Tomorrow's Top 3 section."""
-    yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+def _read_unchecked_top3(date: str = None) -> list[str]:
+    """Return unchecked items from the prior day's ## Tomorrow's Top 3 section."""
+    base = (datetime.strptime(date, "%Y-%m-%d") if date else datetime.now())
+    yesterday = (base - timedelta(days=1)).strftime("%Y-%m-%d")
     note = daily_note.daily_path(yesterday)
     if not note.exists():
         return []
@@ -150,16 +221,17 @@ def _read_unchecked_top3() -> list[str]:
         return []
 
 
-def _write_tomorrows_top3(commits: dict, dirty: list, force: bool) -> Tuple[bool, str]:
+def _write_tomorrows_top3(commits: dict, dirty: list, force: bool,
+                          date: str = None) -> Tuple[bool, str]:
     print("  • tomorrows_top_3...", end=" ", flush=True)
-    if daily_note.section_status().get("tomorrows_top_3") == "filled" and not force:
+    if daily_note.section_status(date).get("tomorrows_top_3") == "filled" and not force:
         print("skipped (already filled)")
         return True, "skipped"
     try:
         items: list[str] = []
 
         # Carry forward unchecked items from yesterday — quest continuity
-        carried = _read_unchecked_top3()
+        carried = _read_unchecked_top3(date)
         for item in carried[:2]:
             items.append(item + " *(carried)*")
 
@@ -187,16 +259,18 @@ def _write_tomorrows_top3(commits: dict, dirty: list, force: bool) -> Tuple[bool
 
         final_items = items[:3]
 
-        # Auto-create WEs for tomorrow's top 3
+        # Auto-create WEs for tomorrow's top 3 — "tomorrow" relative to the
+        # day being wrapped, not the wall clock (they differ after midnight)
         try:
             import we_factory
-            from datetime import timedelta
-            tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+            base = (datetime.strptime(date, "%Y-%m-%d") if date else datetime.now())
+            tomorrow = (base + timedelta(days=1)).strftime("%Y-%m-%d")
             we_factory.create_for_top3(final_items, date=tomorrow)
         except Exception as e:
             print(f"    (we_factory failed: {e})")
 
-        daily_note.write_section("tomorrows_top_3", "\n".join(final_items), actor="claude")
+        daily_note.write_section("tomorrows_top_3", "\n".join(final_items),
+                                 actor="claude", date=date)
         print("written")
         return True, "written"
     except Exception as e:
@@ -206,9 +280,9 @@ def _write_tomorrows_top3(commits: dict, dirty: list, force: bool) -> Tuple[bool
 
 # ── WAFT fitness ─────────────────────────────────────────────────────────────
 
-def _award_quest_fitness(done_quests: list) -> None:
+def _award_quest_fitness(done_quests: list, date: str = None) -> None:
     """Award fitness delta for completed quests. Sentinel-file idempotent."""
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = date or datetime.now().strftime("%Y-%m-%d")
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
     sentinel = RUNS_DIR / f"fitness_{today}"
 
@@ -236,16 +310,13 @@ def _award_quest_fitness(done_quests: list) -> None:
 
 # ── EOD Summary ─────────────────────────────────────────────────────────────
 
-def _write_eod_summary(commits: dict, dirty: list, note_state: dict) -> Tuple[bool, str]:
+def _write_eod_summary(commits: dict, dirty: list, note_state: dict,
+                       date: str = None) -> Tuple[bool, str]:
     """Generate and append an EOD summary to the daily note's Session Recap section."""
     print("  • eod_summary...", end=" ", flush=True)
     try:
-        from pathlib import Path as _Path
-        note_path = daily_note.daily_path()
-        text = _Path(note_path).read_text()
-
         # Build in-the-lab decisions snippet from current note
-        lab_text = daily_note.read_section("in_the_lab") or ""
+        lab_text = daily_note.read_section("in_the_lab", date=date) or ""
         decisions = []
         for line in lab_text.splitlines():
             if line.startswith("**Decision:**"):
@@ -262,7 +333,8 @@ def _write_eod_summary(commits: dict, dirty: list, note_state: dict) -> Tuple[bo
         )
 
         ts = datetime.now().strftime("%H:%M")
-        weekday = datetime.now().strftime("%A, %B %-d")
+        label_dt = (datetime.strptime(date, "%Y-%m-%d") if date else datetime.now())
+        weekday = label_dt.strftime("%A, %B %-d")
 
         summary = f"""
 ## Session Recap (Timestamped)
@@ -298,11 +370,10 @@ def _write_eod_summary(commits: dict, dirty: list, note_state: dict) -> Tuple[bo
         else:
             summary += "Review open work efforts — `_work_efforts/devlog/index.md`.\n"
 
-        if "## Session Recap" not in text:
-            _Path(note_path).write_text(text.rstrip() + "\n" + summary)
-        else:
-            # Overwrite existing recap
-            daily_note.write_section("session_recap", summary.split("## Session Recap (Timestamped)\n", 1)[-1], actor="claude")
+        # write_section self-heals if the header is missing from the note
+        # (legacy schema, trimmed template) — no need to branch on that here.
+        body = summary.split("## Session Recap (Timestamped)\n", 1)[-1]
+        daily_note.write_section("session_recap", body, actor="claude", date=date)
 
         print("written")
         return True, "written"
@@ -360,19 +431,28 @@ def main():
                         help="Skip vault backup")
     parser.add_argument("--force",     action="store_true",
                         help="Overwrite already-filled note sections")
+    parser.add_argument("--date",      metavar="YYYY-MM-DD", default=None,
+                        help="Day to close out (default: auto — before 06:00 "
+                             "wraps the previous day if its note is the live one)")
     args = parser.parse_args()
+
+    date_str = _resolve_date(args.date)
+    if not daily_note.exists(date_str):
+        print(f"❌ No daily note for {date_str} — nothing to wrap up.")
+        return 1
 
     results = {
         "timestamp": datetime.now().isoformat(),
+        "date": date_str,
         "args": vars(args),
         "phases": {},
     }
 
     # Phase 1 ── Gather
-    print("📥 Phase 1: Gathering state...")
+    print(f"📥 Phase 1: Gathering state for {date_str}...")
     repos  = _discover_repos()
-    commits, cs = _gather_commits(repos)
-    note_state, ns = _gather_note_state()
+    commits, cs = _gather_commits(repos, date_str)
+    note_state, ns = _gather_note_state(date_str)
     dirty,   ds = _gather_dirty(repos)
 
     results["phases"]["gather"] = {
@@ -385,13 +465,13 @@ def main():
     print("\n✍️  Phase 2: Writing daily note...")
     phase2 = {}
     if not args.dry_run:
-        ok, s = _write_commits(commits, args.force)
+        ok, s = _write_commits(commits, args.force, date_str)
         phase2["commits_today"] = {"ok": ok, "status": s}
 
-        ok, s = _write_tomorrows_top3(commits, dirty, args.force)
+        ok, s = _write_tomorrows_top3(commits, dirty, args.force, date_str)
         phase2["tomorrows_top_3"] = {"ok": ok, "status": s}
 
-        ok, s = _write_eod_summary(commits, dirty, note_state)
+        ok, s = _write_eod_summary(commits, dirty, note_state, date_str)
         phase2["eod_summary"] = {"ok": ok, "status": s}
 
         # Write session-end entry to being journal
@@ -411,36 +491,101 @@ def main():
             details=details,
             being_state=waft_data.get("being"),
         )
-        _award_quest_fitness(done)
+        _award_quest_fitness(done, date_str)
     else:
         print("  (dry-run: skipping writes)")
 
     results["phases"]["write"] = phase2
 
-    # Phase 3 ── Backup
+    # Phase 3 ── Lock daily plan
     phase3 = {}
+    if not args.dry_run:
+        print("\n🔒 Phase 3: Lock daily plan...")
+        try:
+            import daily_plan as dp
+            lock_result = dp.lock(date_str)
+            if lock_result.get("ok"):
+                rollover_count = lock_result.get("rollover_count", 0)
+                print(f"  ✓ plan locked — {rollover_count} items to roll over tomorrow")
+            else:
+                err = lock_result.get("error", "unknown")
+                print(f"  · plan lock skipped: {err}")
+            phase3["plan_lock"] = lock_result
+        except Exception as e:
+            print(f"  · plan lock failed ({type(e).__name__}): {e}")
+            phase3["plan_lock"] = {"ok": False, "error": str(e)}
+
+    # Phase 4 ── Backup
     vault_status = "skipped"
     if not args.no_backup and not args.dry_run:
-        print("\n🔐 Phase 3: Vault backup...")
+        print("\n🔐 Phase 4: Vault backup...")
         ok, s = _run_vault_backup()
         phase3["vault_backup"] = {"ok": ok, "status": s}
         vault_status = s
 
     results["phases"]["backup"] = phase3
 
+    # Phase 5 ── Wheel integrity (fail-loud). Supersedes the old sibling-file
+    # check: verifies frontmatter links resolve, containers are filled, spoke
+    # reciprocity holds, the parent chain reaches the index, and nothing is
+    # orphaned. This is the guard against 2026-07-10 — a day's work half-wired
+    # into the vault. Non-fatal (writes already happened) but LOUD.
+    today = date_str
+    wheel_errors: list[str] = []
+    wheel_warnings: list[str] = []
+    try:
+        import wheel_check
+        wr = wheel_check.check(today)
+        wheel_errors, wheel_warnings = wr.errors, wr.warnings
+        results["phases"]["wheel_check"] = {
+            "errors": wheel_errors, "warnings": wheel_warnings, "broken": wr.broken,
+        }
+        if wr.broken:
+            print(f"\n❌ Phase 5: WHEEL BROKEN — {len(wheel_errors)} error(s)")
+            for e in wheel_errors:
+                print(f"  ✗ {e}")
+            for w in wheel_warnings:
+                print(f"  ⚠ {w}")
+            print("  → fix the above or run /wagonwheel, then `python3 wheel_check.py`")
+        elif wheel_warnings:
+            print(f"\n⚠️  Phase 5: wheel intact, {len(wheel_warnings)} warning(s)")
+            for w in wheel_warnings:
+                print(f"  ⚠ {w}")
+        else:
+            print("\n✅ Phase 5: wheel intact — fully wired, no dangling links, no orphans")
+    except Exception as e:
+        print(f"\n· Phase 5: wheel check skipped ({type(e).__name__}): {e}")
+        # Fall back to the narrow sibling-file guard so we never silently pass
+        sib = _check_sibling_files(today)
+        results["phases"]["sibling_files"] = {"warnings": sib}
+        for w in sib:
+            print(f"  ⚠ {w}")
+        wheel_warnings = sib
+
     # Single consolidated journal entry
     total_c = commits.get("total_commits", 0)
     touched = commits.get("total_repos_touched", 0)
-    written_sections = [k for k, v in phase2.items() if v.get("status") == "written"]
+    written_sections = [k for k, v in phase2.items() if v.get("status") in ("written", "refreshed")]
     skipped_sections = [k for k, v in phase2.items() if v.get("status") == "skipped"]
     dirty_names = [d["name"] for d in dirty[:5]]
+
+    context_lines = []
+    if skipped_sections:
+        context_lines.append(f"Sections skipped (filled): {', '.join(skipped_sections)}")
+    if dirty_names:
+        context_lines.append(f"Dirty repos: {', '.join(dirty_names)}")
+    if wheel_errors:
+        context_lines.append("❌ WHEEL BROKEN: " + "; ".join(wheel_errors))
+    if wheel_warnings:
+        context_lines.append("⚠️ Wheel warnings: " + "; ".join(wheel_warnings))
 
     _log("wrap-up",
          f"{total_c} commits · {len(dirty)} dirty · vault: {vault_status}",
          changes=written_sections if written_sections else None,
          files=[f"_experiments/SimpleAgentOS/wrap_up.py"],
          next_steps="Phase 0: build tools/vault-backup.sh" if not VAULT_BACKUP.exists() else "",
-         context=f"Sections skipped (filled): {', '.join(skipped_sections)}\nDirty repos: {', '.join(dirty_names)}" if dirty_names else ""
+         context="\n".join(context_lines),
+         date=date_str,
     )
 
     # Summary

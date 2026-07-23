@@ -1,64 +1,83 @@
-
 import json
 import httpx
+import sqlite3
+import os
+import asyncio
 from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware, allow_origins=[""], allow_methods=[""], allow_headers=["*"])
 
 PB_URL = "http://127.0.0.1:8090/api/collections/transmissions/records"
 LLAMA_URL = "http://127.0.0.1:8080/v1/chat/completions"
+DB_PATH = os.path.expanduser("~/Code/.empirica/sessions/sessions.db")
 
-async def stream_and_capture(payload):
-    prompt = payload["messages"][-1]["content"]
-    full_thoughts = ""
-    full_response = ""
-    record_id = None
+def ensure_payload_integrity(payload: dict) -> dict:
+if not isinstance(payload, dict):
+payload = {}
+if "messages" not in payload:
+content = payload.get("query") or payload.get("prompt") or "System: Integrity Check"
+payload["messages"] = [{"role": "user", "content": str(content)}]
+if not isinstance(payload["messages"], list) or len(payload["messages"]) == 0:
+payload["messages"] = [{"role": "user", "content": "System: Empty Payload Recovery"}]
+return payload
 
-    async with httpx.AsyncClient(timeout=None) as client:
-        try:
-            async with client.stream("POST", LLAMA_URL, json=payload) as response:
-                async for line in response.aiter_lines():
-                    if line.startswith("data: ") and line != "data: [DONE]":
-                        data = json.loads(line[6:])
-                        delta = data["choices"][0]["delta"]
+async def stream_and_capture(payload, persona_id="persona_fogsift"):
+payload = ensure_payload_integrity(payload)
+try:
+last_msg = payload.get("messages", [{}])[-1]
+prompt = last_msg.get("content", "Unknown Prompt")
+except:
+prompt = "System: Prompt Extraction Failed"
 
-                        if "reasoning_content" in delta:
+full_thoughts = ""
+full_response = ""
+record_id = None
+
+async with httpx.AsyncClient(timeout=None) as client:
+    try:
+        async with client.stream("POST", LLAMA_URL, json=payload) as response:
+            async for line in response.aiter_lines():
+                if not line: continue
+                if line.startswith("data: ") and line != "data: [DONE]":
+                    try:
+                        raw_data = line[6:].strip()
+                        if not raw_data: continue
+                        data = json.loads(raw_data)
+                        delta = data.get("choices", [{}])[0].get("delta", {})
+                        if "reasoning_content" in delta: 
                             full_thoughts += delta["reasoning_content"]
-                        if "content" in delta:
+                        if "content" in delta: 
                             full_response += delta["content"]
-
-                        # CREATE on first bit of data
                         if not record_id and (full_thoughts or full_response):
-                            create_res = await client.post(PB_URL, json={
-                                "prompt": prompt, "thoughts": full_thoughts, "response": full_response
-                            })
-                            record_id = create_res.json().get("id")
-                        
-                        # UPDATE every ~20 characters to keep DB in sync without killing performance
-                        elif record_id and len(full_response + full_thoughts) % 20 == 0:
-                            await client.patch(f"{PB_URL}/{record_id}", json={
-                                "thoughts": full_thoughts, "response": full_response
-                            })
+                            try:
+                                create_res = await client.post(PB_URL, json={"prompt": prompt, "thoughts": full_thoughts, "response": full_response, "user": persona_id})
+                                if create_res.status_code in [200, 201]: 
+                                    record_id = create_res.json().get("id")
+                            except: pass
+                        yield line + "\n\n"
+                    except: continue
+                elif line == "data: [DONE]":
+                    if record_id:
+                        try: 
+                            await client.patch(f"{PB_URL}/{record_id}", json={"thoughts": full_thoughts, "response": full_response})
+                        except: pass
+                    yield line + "\n\n"
+    except Exception as e:
+        yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
-                        yield f"{line}\n\n"
-        except Exception as e:
-            print(f"STREAME_ERROR: {e}")
-        finally:
-            # FINAL GUARANTEE: Save everything on stop/fail
-            if record_id:
-                async with httpx.AsyncClient() as final_client:
-                    await final_client.patch(f"{PB_URL}/{record_id}", json={
-                        "thoughts": full_thoughts, "response": full_response
-                    })
 
 @app.post("/query")
-async def query(request: Request):
-    payload = await request.json()
-    return StreamingResponse(stream_and_capture(payload), media_type="text/event-stream")
+async def query_endpoint(request: Request):
+try:
+raw_payload = await request.json()
+except:
+raw_payload = {}
+sanitized_payload = ensure_payload_integrity(raw_payload)
+return StreamingResponse(stream_and_capture(sanitized_payload), media_type="text/event-stream")
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=3000)
+if name == "main":
+import uvicorn
+uvicorn.run(app, host="127.0.0.1", port=3000)

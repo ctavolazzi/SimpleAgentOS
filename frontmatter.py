@@ -21,6 +21,7 @@ Usage:
 import re
 import sys
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Optional
 
 import daily_note
@@ -35,16 +36,29 @@ except ImportError:
 # ── Schema ────────────────────────────────────────────────────────────────────
 
 SCHEMA = {
-    "type":         {"kind": "scalar", "required": True,  "default": "daily"},
-    "date":         {"kind": "scalar", "required": True},
-    "created":      {"kind": "scalar", "required": False},
-    "project":      {"kind": "scalar", "required": False},
-    "focus":        {"kind": "scalar", "required": False},
-    "work_efforts": {"kind": "list",   "required": False, "default": []},
-    "tags":         {"kind": "list",   "required": False, "default": ["daily"]},
-    "location":     {"kind": "scalar", "required": False},
-    "related":      {"kind": "list",   "required": False, "default": []},
-    "code_refs":    {"kind": "list",   "required": False, "default": []},
+    "type":                {"kind": "scalar", "required": True,  "default": "daily"},
+    "date":                {"kind": "scalar", "required": True},
+    "parent":              {"kind": "scalar", "required": True,  "default": "[[00.00_vault_index]]", "link": True},
+    "created":             {"kind": "scalar", "required": False},
+    "project":             {"kind": "scalar", "required": False},
+    "focus":               {"kind": "scalar", "required": False},
+    # NOTE: field is work_efforts_TOUCHED — matches the template + real notes.
+    # (Was mis-named "work_efforts" in the schema, so `sync` would have injected
+    #  a bogus duplicate field. Corrected 2026-07-10.)
+    "work_efforts_touched": {"kind": "list",  "required": False, "default": []},
+    "tags":                {"kind": "list",   "required": False, "default": ["daily"]},
+    "location":            {"kind": "scalar", "required": False},
+    "related":             {"kind": "list",   "required": False, "default": []},
+    "code_refs":           {"kind": "list",   "required": False, "default": []},
+    # Session continuity links — scaffolded by spin_up.py Phase 5 AND the
+    # template. hub is REQUIRED: a daily note with no hub is unreachable as a
+    # continuation brief (the 2026-07-10 blind spot). link:True fields are
+    # checked for target existence by validate().
+    "plan":                {"kind": "scalar", "required": False, "link": True},
+    "plan_status":         {"kind": "scalar", "required": False},
+    "journal":             {"kind": "scalar", "required": True,  "link": True},
+    "hub":                 {"kind": "scalar", "required": True,  "link": True},
+    "wagonwheel":          {"kind": "scalar", "required": False, "link": True},
 }
 
 
@@ -184,8 +198,32 @@ def remove_from_list(field: str, item: str, date: Optional[str] = None) -> list:
     return current if isinstance(current, list) else []
 
 
-def validate(date: Optional[str] = None) -> list[str]:
-    """Return list of validation issues. Empty = valid."""
+def _resolve_wikilink(link: str) -> bool:
+    """True if a [[wikilink]] (optionally with |alias or path) resolves to a
+    real .md file in the vault. Accepts both 'Hubs/2026-07-10_hub' (pathed)
+    and bare basenames (Obsidian resolves those by filename anywhere)."""
+    m = re.search(r'\[\[([^\]|#]+)', str(link))
+    if not m:
+        return True  # not a wikilink — nothing to resolve (skip)
+    target = m.group(1).strip()
+    vault = daily_note.VAULT_DIR
+    # Pathed target: try direct, and .md-suffixed
+    direct = vault / target
+    if direct.is_file() or (vault / f"{target}.md").is_file():
+        return True
+    # Bare basename: search the whole vault (Obsidian's resolution)
+    base = Path(target).name
+    for p in vault.rglob(f"{base}.md"):
+        if ".obsidian" not in p.parts and ".trash" not in p.parts:
+            return True
+    return False
+
+
+def validate(date: Optional[str] = None, check_links: bool = True) -> list[str]:
+    """Return list of validation issues. Empty = valid.
+
+    check_links=True also verifies that every link:True field points at a file
+    that actually exists on disk — catches dangling hub/journal/plan links."""
     data = read_fm(date)
     issues = []
     for field, spec in SCHEMA.items():
@@ -195,6 +233,11 @@ def validate(date: Optional[str] = None) -> list[str]:
             val = data[field]
             if spec["kind"] == "list" and not isinstance(val, list):
                 issues.append(f"TYPE: '{field}' should be list, got {type(val).__name__}")
+            if check_links and spec.get("link") and val:
+                if "[[" not in str(val):
+                    issues.append(f"LINK: '{field}' is not a wikilink: {val!r}")
+                elif not _resolve_wikilink(val):
+                    issues.append(f"DANGLING: '{field}' → {val} (no such file)")
     date_val = data.get("date")
     if date_val and not re.match(r'^\d{4}-\d{2}-\d{2}$', str(date_val)):
         issues.append(f"FORMAT: date '{date_val}' not YYYY-MM-DD")

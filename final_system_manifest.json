@@ -1,0 +1,55 @@
+{
+  "manifest_version": "1.2.0",
+  "timestamp": "2026-04-18T15:51:02.415166",
+  "active_personnel": [
+    {
+      "id": "persona_fogsift",
+      "username": "fogsift",
+      "name": "FogSift",
+      "avatar": "\ud83d\udef0\ufe0f"
+    },
+    {
+      "id": "persona_archive",
+      "username": "archivist",
+      "name": "Archive-Agent",
+      "avatar": "\ud83d\udcda"
+    },
+    {
+      "id": "persona_labtech",
+      "username": "labtech",
+      "name": "Lab-Technician",
+      "avatar": "\ud83e\uddea"
+    }
+  ],
+  "schema_status": {
+    "transmissions_linked_to_user": true
+  },
+  "telemetry_volumes": {
+    "daily_sessions": 37,
+    "experiments": 2,
+    "linked_docs": 4,
+    "section_operations": 19230,
+    "section_snapshots": 3,
+    "transmissions": 0,
+    "users": 3
+  },
+  "logic_integrity": {
+    "setup_orchestrator.py": {
+      "size_bytes": 4226,
+      "last_modified": "2026-04-18T14:28:32.383863"
+    },
+    "daily_note.py": {
+      "size_bytes": 16816,
+      "last_modified": "2026-04-18T13:42:31.377693"
+    },
+    "brain.py": {
+      "size_bytes": 13044,
+      "last_modified": "2026-04-06T07:14:23.166450"
+    },
+    "core_engine/nerve_center.py": {
+      "size_bytes": 3359,
+      "last_modified": "2026-04-18T15:47:52.417265"
+    }
+  },
+  "next_objective": "Test end-to-end transmission with FogSift persona"
+}

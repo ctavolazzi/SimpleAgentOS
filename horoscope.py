@@ -271,7 +271,7 @@ def _waft_cosmic(being: dict, quests: list) -> str:
 
 # ── Markdown renderer ────────────────────────────────────────────────────────
 
-def format_md(data: dict, waft_data: Optional[dict] = None) -> str:
+def format_md(data: dict, waft_data: Optional[dict] = None, moon_phase: Optional[str] = None) -> str:
     """Render daily reading as Obsidian callout — horoscope + WAFT + vault history."""
     sign = data.get("sign", YOUR_SIGN).capitalize()
     date_str = data.get("date", datetime.now().strftime("%Y-%m-%d"))
@@ -284,7 +284,10 @@ def format_md(data: dict, waft_data: Optional[dict] = None) -> str:
     except Exception:
         weekday = date_str
 
-    lines = [f"> [!quote]+ ☽ {sign} · {weekday}"]
+    header = f"> [!quote]+ ☽ {sign} · {weekday}"
+    if moon_phase:
+        header += f" · {moon_phase}"
+    lines = [header]
 
     if horoscope_text:
         for sentence in horoscope_text.replace(". ", ".\n").splitlines():

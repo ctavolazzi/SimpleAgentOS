@@ -14,6 +14,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+import atomic_io
+import yaml_io
+
 # Optional observability — logs to trail_log if harness_log is available.
 # daily_note.py remains zero-dependency; this import is best-effort.
 try:
@@ -26,6 +29,8 @@ except ImportError:
 
 VAULT_DIR = Path.home() / "Documents" / "Personal-Remote-Vault"
 DAILY_NOTES_DIR = VAULT_DIR / "Daily Notes"
+TEMPLATE_PATH = (VAULT_DIR / "System" / "00-09_system_meta" / "02_templates"
+                 / "Daily_Note_Template.md")
 
 
 # ── Section registry ───────────────────────────────────────────────────
@@ -85,6 +90,78 @@ def daily_path(date: Optional[str] = None) -> Path:
 def exists(date: Optional[str] = None) -> bool:
     """Check if a daily note exists for the given date."""
     return daily_path(date).is_file()
+
+
+def create_from_template(date: Optional[str] = None,
+                         template_path: Optional[Path] = None) -> Path:
+    """
+    Create a daily note from the vault's Daily Note Template, rendering
+    basic Templater syntax headlessly (no Obsidian GUI required).
+
+    Supports `<% tp.date.now("FMT") %>` and `<% tp.date.now("FMT", offset) %>`
+    where offset is a day count (e.g. -1, 1). Format tokens handled:
+    YYYY, MM, DD, dddd, MMMM, Do — the set used by the vault template.
+
+    Returns the path to the note. No-op if the note already exists.
+    Raises FileNotFoundError if the template is missing.
+    """
+    from datetime import timedelta
+
+    if date is None:
+        date = datetime.now().strftime("%Y-%m-%d")
+    path = daily_path(date)
+    if path.is_file():
+        return path
+
+    tmpl = template_path or TEMPLATE_PATH
+    if not tmpl.is_file():
+        raise FileNotFoundError(f"Daily note template not found: {tmpl}")
+
+    base = datetime.strptime(date, "%Y-%m-%d")
+
+    def _ordinal(n: int) -> str:
+        if 11 <= n % 100 <= 13:
+            return f"{n}th"
+        return f"{n}{ {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th') }"
+
+    def _render_format(fmt: str, dt: datetime) -> str:
+        # Longest-token-first so MMMM wins over MM, dddd over DD, etc.
+        tokens = [
+            ("dddd", dt.strftime("%A")),
+            ("MMMM", dt.strftime("%B")),
+            ("YYYY", f"{dt.year:04d}"),
+            ("Do",   _ordinal(dt.day)),
+            ("MM",   f"{dt.month:02d}"),
+            ("DD",   f"{dt.day:02d}"),
+        ]
+        out = fmt
+        for token, value in tokens:
+            out = out.replace(token, value)
+        return out
+
+    def _replace(match: re.Match) -> str:
+        fmt = match.group(1)
+        offset = int(match.group(2)) if match.group(2) else 0
+        return _render_format(fmt, base + timedelta(days=offset))
+
+    pattern = re.compile(
+        r'<%\s*tp\.date\.now\(\s*"([^"]+)"\s*(?:,\s*(-?\d+)\s*)?\)\s*%>'
+    )
+    text = pattern.sub(_replace, tmpl.read_text(encoding="utf-8"))
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with atomic_io.vault_lock():
+        if path.is_file():  # re-check under lock
+            return path
+        atomic_io.atomic_write(path, text)
+
+    if _log_op:
+        try:
+            _log_op(op="create_from_template", section="(whole note)",
+                    actor="harness", date=date, path=str(path))
+        except Exception:
+            pass
+    return path
 
 
 def read_full(date: Optional[str] = None) -> str:
@@ -150,33 +227,70 @@ def section_status(date: Optional[str] = None) -> dict:
 
 # ── Cross-day retrieval ───────────────────────────────────────────────
 
+def most_recent_note(max_back: Optional[int] = None) -> Optional[str]:
+    """
+    Return the date (YYYY-MM-DD) of the most recent daily note strictly
+    before today. Scans the Daily Notes directory directly rather than
+    probing one day at a time, so continuity survives ANY gap — a long
+    weekend, a month off, a year away. There is no lookback horizon by
+    default: whatever the last note is, it's found.
+
+    Pass max_back (days) only if you actually want a bounded search —
+    e.g. "was there a note in the last week specifically." Left unset,
+    a year-old note is found exactly as reliably as a two-day-old one.
+    """
+    if not DAILY_NOTES_DIR.is_dir():
+        return None
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    date_pattern = re.compile(r'^\d{4}-\d{2}-\d{2}$')
+    candidates = [
+        p.stem for p in DAILY_NOTES_DIR.glob("*.md")
+        if date_pattern.match(p.stem) and p.stem < today_str
+    ]
+    if not candidates:
+        return None
+    best = max(candidates)  # ISO date strings sort chronologically
+    if max_back is not None:
+        from datetime import timedelta
+        cutoff = (datetime.now() - timedelta(days=max_back)).strftime("%Y-%m-%d")
+        if best < cutoff:
+            return None
+    return best
+
+
 def read_yesterday(section: str) -> str:
-    """Read a section from yesterday's daily note."""
-    from datetime import timedelta
-    yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-    if not exists(yesterday):
+    """Read a section from the most recent prior daily note (gap-tolerant)."""
+    prior = most_recent_note()
+    if prior is None:
         return ""
-    return read_section(section, date=yesterday)
+    return read_section(section, date=prior)
 
 
 def last_handoff() -> dict:
     """
-    Return yesterday's handoff data for cross-session continuity.
+    Return the most recent handoff data for cross-session continuity.
+    Finds the last note regardless of how long ago it was — a 4-day gap,
+    a month away, a year off all resolve the same way: pick up from
+    whatever the last note actually says, not a synthetic cold start.
     Reads the three sections that carry context between sessions:
-    - tomorrows_top_3: what was planned for today
+    - tomorrows_top_3: what was planned for the next day
     - claude_session_log: what the last session did
     - in_the_lab: architectural decisions made
     """
     from datetime import timedelta
     yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-    if not exists(yesterday):
+    prior = most_recent_note()
+    if prior is None:
         return {"date": yesterday, "found": False}
     return {
-        "date": yesterday,
+        "date": prior,
         "found": True,
-        "tomorrows_top_3": read_section("tomorrows_top_3", yesterday),
-        "claude_session_log": read_section("claude_session_log", yesterday),
-        "in_the_lab": read_section("in_the_lab", yesterday),
+        "gap_days": (datetime.strptime(
+            datetime.now().strftime("%Y-%m-%d"), "%Y-%m-%d")
+            - datetime.strptime(prior, "%Y-%m-%d")).days,
+        "tomorrows_top_3": read_section("tomorrows_top_3", prior),
+        "claude_session_log": read_section("claude_session_log", prior),
+        "in_the_lab": read_section("in_the_lab", prior),
     }
 
 
@@ -212,7 +326,17 @@ def write_section(section: str, content: str, actor: str = "claude",
     header = SECTIONS[section]
     ts = datetime.now().strftime("%H:%M")
 
-    if mode == "append":
+    # Self-heal: if the header is absent (legacy note, trimmed template),
+    # append the section at the end instead of silently dropping the write.
+    header_present = re.search(rf'^{re.escape(header)}\s*$', text, re.MULTILINE)
+    if not header_present:
+        body = f"\n**[{actor} @ {ts}]**\n{content}\n" if mode == "append" else content
+        if not body.endswith("\n"):
+            body += "\n"
+        new_text = text.rstrip("\n") + f"\n\n---\n\n{header}\n\n{body}"
+        if _log_op:
+            _log_op("write_section", actor, section, "section_created")
+    elif mode == "append":
         # Add content after existing section body, before next header
         old_body = _extract_section(text, header)
         # Add attribution line
@@ -223,8 +347,16 @@ def write_section(section: str, content: str, actor: str = "claude",
         # Replace entire section body
         new_text = _replace_section(text, header, content)
 
+    if new_text == text and content.strip() \
+            and _extract_section(text, header).strip() != content.strip():
+        raise RuntimeError(
+            f"write_section produced no change for '{section}' — refusing to "
+            f"report success on a silent no-op"
+        )
+
     try:
-        path.write_text(new_text, encoding="utf-8")
+        with atomic_io.vault_lock():
+            atomic_io.atomic_write(path, new_text)
     except OSError as e:
         if _log_op:
             _log_op("write_section", actor, section, "fs_error", error=str(e))
@@ -296,34 +428,27 @@ def update_frontmatter_fields(fields: dict, date: Optional[str] = None) -> dict:
     """
     Update specific YAML frontmatter fields without touching others.
     Example: update_frontmatter_fields({"project": "SimpleAgentOS", "energy": "high"})
+
+    Uses ruamel.yaml RoundTrip mode via yaml_io — preserves comments,
+    anchors, quote styles, and key order. All quoting/escaping is handled
+    by ruamel; we just hand it the value.
     """
     path = daily_path(date)
     text = read_full(date)
 
-    fm_match = re.match(r'^---\n(.*?)\n---', text, re.DOTALL)
-    if not fm_match:
+    fm, body = yaml_io.parse(text)
+    if fm is None:
         raise ValueError("No frontmatter found in daily note")
 
-    fm_text = fm_match.group(1)
-    for key, value in fields.items():
-        # Match key line + any indented continuation lines (multi-line YAML lists)
-        pattern = rf'^{re.escape(key)}:[ \t]*.*(?:\n[ \t]+.+)*'
-        if isinstance(value, list):
-            def _yaml_item(v: str) -> str:
-                v = str(v)
-                # Quote values that contain YAML-special chars ([[, {, :, #, etc.)
-                if v.startswith("[[") or any(c in v for c in ('"', "'", "{", ":", "#")):
-                    escaped = v.replace('"', '\\"')
-                    return f'  - "{escaped}"'
-                return f"  - {v}"
-            yaml_list = "\n".join(_yaml_item(v) for v in value)
-            replacement = f"{key}:\n{yaml_list}"
-            fm_text = re.sub(pattern, replacement, fm_text, flags=re.MULTILINE)
-        else:
-            fm_text = re.sub(pattern, f"{key}: {value}", fm_text, flags=re.MULTILINE)
+    new_text = yaml_io.update_fields(text, fields)
 
-    new_text = text[:fm_match.start(1)] + fm_text + text[fm_match.end(1):]
-    path.write_text(new_text, encoding="utf-8")
+    with atomic_io.vault_lock():
+        atomic_io.atomic_write(path, new_text)
+
+    if _log_op:
+        _log_op("update_frontmatter", "system", "frontmatter", "ok",
+                content=",".join(fields.keys()))
+
     return {"status": "updated", "fields": list(fields.keys())}
 
 
@@ -359,7 +484,9 @@ def _replace_section(text: str, header: str, new_body: str) -> str:
         pattern = rf'(^{escaped}\s*\n)(.*?)(?=^#{{{1},{level}}} |\Z)'
         if not new_body.endswith("\n"):
             new_body += "\n"
-        result = re.sub(pattern, rf'\1{new_body}', text, count=1,
+        # Function replacement so new_body is inserted literally — a raw
+        # replacement string chokes on backslashes (e.g. LaTeX in arXiv titles).
+        result = re.sub(pattern, lambda m: m.group(1) + new_body, text, count=1,
                         flags=re.MULTILINE | re.DOTALL)
         return result
     except re.error:
@@ -398,6 +525,18 @@ def _is_template_only(content: str) -> bool:
         "Linked Document:", "Quick capture space",
         "Music is embedded", "No entries yet",
         "Tip: If you also write",
+        # Sitrep template ships "**Blockers:** None" — value'd label, but stock.
+        # Counting it as content meant a fresh note's sitrep read "filled" and
+        # spin-up skipped it every morning (the section stayed template-blank).
+        "**Blockers:** None",
+        # WAFT Workspace / Session Log / Session Recap template callouts
+        "WAFT Being ·",
+        "Auto-generated by spin_up.py",
+        "Auto-generated by /wrap-up",
+        "Claude Code writes compact journal entries",
+        "EOD summary of decisions",
+        "[!info] Auto-generated",
+        "[!summary] Auto-generated",
     ]
     # A bare bold label with no value ( **Foo**  or  **Foo:**  ) is a stub.
     bare_label = re.compile(r"^\*\*[^*]+\*\*:?$")
@@ -423,9 +562,10 @@ def _write_frontmatter(content: str, date: Optional[str] = None) -> dict:
     """Replace frontmatter entirely. Use update_frontmatter_fields instead."""
     path = daily_path(date)
     text = read_full(date)
-    new_text = re.sub(r'^---\n.*?\n---', f'---\n{content}\n---', text,
-                      count=1, flags=re.DOTALL)
-    path.write_text(new_text, encoding="utf-8")
+    _, body = yaml_io.parse(text)
+    new_text = f"---\n{content.rstrip(chr(10))}\n---\n{body}"
+    with atomic_io.vault_lock():
+        atomic_io.atomic_write(path, new_text)
     return {"status": "written", "section": "frontmatter"}
 
 
@@ -437,26 +577,51 @@ if __name__ == "__main__":
 
     if len(sys.argv) < 2:
         print("Usage:")
-        print("  python daily_note.py status          — show section fill status")
+        print("  python daily_note.py status [date]   — show section fill status")
         print("  python daily_note.py read <section>   — read a section")
         print("  python daily_note.py sections         — list all sections")
         print("  python daily_note.py handoff          — yesterday's handoff data (JSON)")
+        print("  python daily_note.py create [date]    — create note from template (headless)")
         sys.exit(0)
 
     cmd = sys.argv[1]
 
     if cmd == "status":
-        status = section_status()
+        # Optional explicit date; otherwise today, falling back to the most
+        # recent note so pre-dawn preflight (before the note exists) can still
+        # exercise the section parser instead of reporting zero sections.
+        status_date = sys.argv[2] if len(sys.argv) > 2 else None
+        if status_date is None and not exists():
+            status_date = most_recent_note()
+            if status_date is None:
+                print("no daily notes found — run: python3 daily_note.py create")
+                sys.exit(0)
+            print(f"(no note for today — showing most recent: {status_date})")
+        if not exists(status_date):
+            print(f"no daily note for {status_date}")
+            sys.exit(1)
+        status = section_status(status_date)
         for name, state in status.items():
             icon = {"filled": "●", "template": "◐", "empty": "○", "absent": "·"}[state]
             print(f"  {icon} {name:25s} {state}")
-    elif cmd == "read" and len(sys.argv) > 2:
+        sys.exit(0)
+
+    if cmd == "read" and not exists():
+        print(f"no daily note for today — run: python3 daily_note.py create")
+        sys.exit(0)
+
+    if cmd == "read" and len(sys.argv) > 2:
         print(read_section(sys.argv[2]))
     elif cmd == "sections":
         for name, header in SECTIONS.items():
             writable = "✎" if name in AI_WRITABLE else " "
             gemma = "G" if name in GEMMA_WRITABLE else " "
             print(f"  {writable}{gemma} {name:25s} {header or '(YAML)'}")
+    elif cmd == "create":
+        target = sys.argv[2] if len(sys.argv) > 2 else None
+        already = exists(target)
+        path = create_from_template(target)
+        print(f"{'exists' if already else 'created'}: {path}")
     elif cmd == "handoff":
         data = last_handoff()
         print(json.dumps(data, indent=2))

@@ -135,11 +135,18 @@ def check_harness_integrity(deep: bool = False) -> List[Check]:
 
     # A2: daily_note.py status callable
     rc, sout, serr = run([sys.executable, str(HERE / "daily_note.py"), "status"], timeout=10)
-    marker_lines = [l for l in sout.split("\n") if any(m in l for m in ("●", "○", "◐"))]
+    marker_lines = [l for l in sout.split("\n") if any(m in l for m in ("●", "○", "◐", "·"))]
+    if rc != 0:
+        a2_status, a2_msg = FAIL, f"failed: {serr[:80]}"
+    elif marker_lines:
+        a2_status, a2_msg = PASS, f"{len(marker_lines)} sections enumerated"
+    else:
+        # status now falls back to the most recent note; zero markers means
+        # the vault has no daily notes at all — a fresh vault, not a broken CLI
+        a2_status, a2_msg = WARN, "no daily notes to enumerate (fresh vault?)"
     out.append(Check(
         id="A2", category="harness", name="daily_note status command",
-        status=PASS if rc == 0 and marker_lines else FAIL,
-        message=f"{len(marker_lines)} sections enumerated" if rc == 0 else f"failed: {serr[:80]}",
+        status=a2_status, message=a2_msg,
         data={"section_count": len(marker_lines)},
     ))
 
@@ -284,9 +291,11 @@ def check_vault_and_note() -> List[Check]:
         if note_ok:
             log = daily_note.read_section("claude_session_log", TODAY) or ""
             full_stamps = re.findall(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", log)
-            # Also match `[actor @ HH:MM]` format emitted by append_session_log
+            # Match `[actor @ HH:MM]` format
             short_stamps = re.findall(r"\[[\w-]+ @ (\d{2}:\d{2})\]", log)
-            stamps = full_stamps + [f"{TODAY} {t}" for t in short_stamps]
+            # Match Obsidian callout format `> [!note]- HH:MM`
+            callout_stamps = re.findall(r">\s*\[![\w-]+\]-?\s*(\d{2}:\d{2})", log)
+            stamps = full_stamps + [f"{TODAY} {t}" for t in short_stamps + callout_stamps]
             if stamps:
                 last = sorted(stamps)[-1]
                 last_dt = datetime.strptime(last, "%Y-%m-%d %H:%M")
@@ -314,19 +323,33 @@ def check_vault_and_note() -> List[Check]:
             status=FAIL, message=str(e),
         ))
 
-    # B6: yesterday's handoff
+    # B6: most recent handoff (gap-tolerant — walks back up to 14 days)
     try:
         if str(HERE) not in sys.path:
             sys.path.insert(0, str(HERE))
+        import re as _re
         import daily_note
         handoff = daily_note.last_handoff()
-        top3 = (handoff or {}).get("tomorrows_top_3") or []
-        has = bool(top3)
+        top3_text = (handoff or {}).get("tomorrows_top_3") or ""
+        top3_items = _re.findall(r'^-\s*\[.\]\s*\S.*$', top3_text, _re.MULTILINE)
+        found = bool((handoff or {}).get("found"))
+        gap_days = (handoff or {}).get("gap_days")
+        if found and top3_items:
+            gap_note = f", {gap_days}d gap" if gap_days and gap_days > 1 else ""
+            msg = f"{len(top3_items)} items from {handoff['date']}{gap_note}"
+            status = PASS
+        elif found:
+            gap_note = f" ({gap_days}d gap)" if gap_days and gap_days > 1 else ""
+            msg = f"seed from {handoff['date']} has no top-3 items{gap_note}"
+            status = WARN
+        else:
+            msg = "no prior note within 14 days — cold start"
+            status = WARN
         out.append(Check(
             id="B6", category="vault", name="Yesterday's handoff",
-            status=PASS if has else WARN,
-            message=f"{len(top3)} items" if has else "no prior seed — cold start",
-            data={"top3": top3, "handoff_keys": list((handoff or {}).keys())},
+            status=status, message=msg,
+            data={"top3": top3_items, "handoff_keys": list((handoff or {}).keys()),
+                 "gap_days": gap_days},
         ))
     except Exception as e:
         out.append(Check(

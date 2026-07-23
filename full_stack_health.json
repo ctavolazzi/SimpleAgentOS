@@ -1,0 +1,28 @@
+{
+  "manifest_version": "1.4.0",
+  "timestamp": "2026-04-18T16:44:52.847722",
+  "services": {
+    "Nerve Center": {
+      "port": 3000,
+      "status": true,
+      "cmd": "python3 /Users/ctavolazzi/Code/_experiments/SimpleAgentOS/core_engine/nerve_center.py"
+    },
+    "PocketBase": {
+      "port": 8090,
+      "status": true,
+      "cmd": "/Users/ctavolazzi/Code/_experiments/SimpleAgentOS/core_engine/pocketbase serve"
+    },
+    "Orchestrator": {
+      "port": 8000,
+      "status": true,
+      "cmd": "python3 /Users/ctavolazzi/Code/_experiments/SimpleAgentOS/setup_orchestrator.py"
+    },
+    "Model Server": {
+      "port": 8080,
+      "status": true,
+      "cmd": "llama-server (or equivalent engine)"
+    }
+  },
+  "active_personnel_count": 3,
+  "blockers": []
+}

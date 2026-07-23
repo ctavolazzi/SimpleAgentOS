@@ -1,0 +1,25 @@
+{
+  "manifest_version": "1.3.1",
+  "timestamp": "2026-04-18T15:51:23.436855",
+  "services": {
+    "Nerve Center": {
+      "port": 3000,
+      "status": false,
+      "cmd": "python3 /Users/ctavolazzi/Code/_experiments/SimpleAgentOS/core_engine/nerve_center.py"
+    },
+    "PocketBase": {
+      "port": 8090,
+      "status": true,
+      "cmd": "/Users/ctavolazzi/Code/_experiments/SimpleAgentOS/core_engine/pocketbase serve"
+    },
+    "Orchestrator": {
+      "port": 8000,
+      "status": true,
+      "cmd": "python3 /Users/ctavolazzi/Code/_experiments/SimpleAgentOS/setup_orchestrator.py"
+    }
+  },
+  "active_personnel_count": 3,
+  "blockers": [
+    "Nerve Center"
+  ]
+}
