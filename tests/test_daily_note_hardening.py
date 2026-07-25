@@ -148,6 +148,75 @@ class TestWriteSectionSelfHeal(DailyNoteTestCase):
         self.assertIn("second entry", text)
 
 
+class TestSessionLogCalloutSeparation(DailyNoteTestCase):
+    """
+    Successive session-log entries must render as siblings, not nest.
+
+    Regression: append glued the new attribution line directly onto the
+    previous entry's last `>>` line. Markdown lazy continuation then absorbed
+    the whole new entry into the previous callout, so the 08:20 entry rendered
+    as body text inside the 07:45 one.
+    """
+
+    DATE = "2099-05-01"
+
+    def _append_two(self):
+        daily_note.create_from_template(self.DATE)
+        daily_note.append_session_log(
+            focus="first entry", changes=["alpha"], date=self.DATE)
+        daily_note.append_session_log(
+            focus="second entry", changes=["beta"], date=self.DATE)
+        return daily_note.read_section("claude_session_log", self.DATE)
+
+    def test_blank_line_precedes_each_attribution(self):
+        lines = self._append_two().splitlines()
+        attributions = [i for i, ln in enumerate(lines) if ln.startswith("**[")]
+        self.assertEqual(len(attributions), 2, "expected two attributed entries")
+        for i in attributions:
+            if i == 0:
+                continue  # first line of the section body; header supplies the break
+            self.assertEqual(
+                lines[i - 1].strip(), "",
+                f"line {i} ({lines[i]!r}) must be preceded by a blank line; "
+                f"got {lines[i - 1]!r}; the new entry will nest in the previous callout",
+            )
+
+    def test_no_quoted_line_directly_precedes_an_attribution(self):
+        """The precise failure mode: a `>`-prefixed line immediately above `**[`."""
+        lines = self._append_two().splitlines()
+        for prev, cur in zip(lines, lines[1:]):
+            if cur.startswith("**["):
+                self.assertFalse(
+                    prev.lstrip().startswith(">"),
+                    f"quoted line {prev!r} directly precedes {cur!r}",
+                )
+
+    def test_multiline_values_cannot_escape_the_callout(self):
+        daily_note.create_from_template("2099-05-02")
+        daily_note.append_session_log(
+            focus="headline\nsmuggled out",
+            changes=["repo - fix\nunquoted line"],
+            next_steps="do\nthing",
+            date="2099-05-02",
+        )
+        body = daily_note.read_section("claude_session_log", "2099-05-02")
+        for ln in body.splitlines():
+            if ln.strip() and not ln.startswith("**["):
+                self.assertTrue(
+                    ln.lstrip().startswith(">") or ln.startswith("---"),
+                    f"line escaped the callout block: {ln!r}",
+                )
+        self.assertIn("headline smuggled out", body)
+        self.assertIn("repo - fix unquoted line", body)
+
+    def test_first_entry_has_no_leading_blank_run(self):
+        """Empty section + append must not open with stacked blank lines."""
+        daily_note.create_from_template("2099-05-03")
+        daily_note.append_session_log(focus="only entry", date="2099-05-03")
+        body = daily_note.read_section("claude_session_log", "2099-05-03")
+        self.assertFalse(body.startswith("\n\n"), repr(body[:20]))
+
+
 class TestMostRecentNoteAndHandoff(DailyNoteTestCase):
 
     def _iso(self, days_ago: int) -> str:

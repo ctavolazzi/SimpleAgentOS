@@ -330,7 +330,7 @@ def write_section(section: str, content: str, actor: str = "claude",
     # append the section at the end instead of silently dropping the write.
     header_present = re.search(rf'^{re.escape(header)}\s*$', text, re.MULTILINE)
     if not header_present:
-        body = f"\n**[{actor} @ {ts}]**\n{content}\n" if mode == "append" else content
+        body = f"**[{actor} @ {ts}]**\n{content}" if mode == "append" else content
         if not body.endswith("\n"):
             body += "\n"
         new_text = text.rstrip("\n") + f"\n\n---\n\n{header}\n\n{body}"
@@ -339,9 +339,7 @@ def write_section(section: str, content: str, actor: str = "claude",
     elif mode == "append":
         # Add content after existing section body, before next header
         old_body = _extract_section(text, header)
-        # Add attribution line
-        attributed = f"\n**[{actor} @ {ts}]**\n{content}\n"
-        new_body = old_body.rstrip("\n") + attributed
+        new_body = _join_appended(old_body, f"**[{actor} @ {ts}]**\n{content}")
         new_text = _replace_section(text, header, new_body)
     else:
         # Replace entire section body
@@ -400,23 +398,24 @@ def append_session_log(focus: str, changes: list = None, next_steps: str = "",
     # File links as compact Obsidian wikilinks
     file_links = " · ".join(f"[[{f}]]" for f in files) if files else ""
 
-    # Build compact callout
-    lines = [f"> [!note]- {ts} — {focus}"]
+    # Build compact callout. Every interpolated value is collapsed to one line
+    # so a multi-line commit subject can't escape the quoted block.
+    lines = [f"> [!note]- {ts} — {_oneline(focus)}"]
     if file_links:
         lines.append(f"> {file_links}")
 
     if changes:
         lines.append(f">> [!info]- {len(changes)} change(s)")
         for c in changes:
-            lines.append(f">> - {c}")
+            lines.append(f">> - {_oneline(c)}")
 
     if context:
         lines.append(f">> [!tip]- Context")
         for ctx_line in context.strip().splitlines():
-            lines.append(f">> {ctx_line}")
+            lines.append(f">> {ctx_line}".rstrip())
 
     if next_steps:
-        lines.append(f"> **→** {next_steps}")
+        lines.append(f"> **→** {_oneline(next_steps)}")
 
     entry = "\n".join(lines) + "\n"
 
@@ -453,6 +452,33 @@ def update_frontmatter_fields(fields: dict, date: Optional[str] = None) -> dict:
 
 
 # ── Internal helpers ───────────────────────────────────────────────────
+
+def _join_appended(old_body: str, addition: str) -> str:
+    """
+    Join a new append-mode block onto an existing section body.
+
+    The blank line between them is load-bearing. Markdown lazy continuation
+    means a line following a blockquote without an intervening blank line is
+    absorbed INTO that blockquote, so appending straight onto a previous
+    callout entry nests the new entry inside the old one instead of starting
+    a sibling. One blank, unquoted line closes the previous block.
+    """
+    addition = addition.rstrip("\n") + "\n"
+    prefix = old_body.rstrip("\n")
+    return f"{prefix}\n\n{addition}" if prefix else addition
+
+
+def _oneline(value) -> str:
+    """
+    Collapse a value to a single line for embedding in a callout.
+
+    A stray newline in a commit subject or headline would land unquoted in
+    the middle of a `>`-prefixed block and break the reader out of the
+    callout: the same failure mode as a missing separator, from the other
+    direction.
+    """
+    return " ".join(str(value).split())
+
 
 def _extract_frontmatter(text: str) -> str:
     """Extract YAML frontmatter block."""
