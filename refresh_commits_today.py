@@ -32,7 +32,7 @@ sys.path.insert(0, str(_HERE))
 
 import commit_summary
 import daily_note
-import harness_lib
+import daily_note_update
 
 
 def refresh(date: str | None = None, dry_run: bool = False) -> dict:
@@ -49,7 +49,14 @@ def refresh(date: str | None = None, dry_run: bool = False) -> dict:
         # the day rebuilds it. Not an error.
         return {"status": "skipped", "reason": f"no daily note at {path}"}
 
-    repos = harness_lib.discover_repos()
+    # daily_note_update.find_repos, not harness_lib.discover_repos: the latter
+    # only looks at ~/Code, its top-level dirs, and active/*, so it cannot see
+    # a repo like ~/Code/_experiments/SimpleAgentOS and silently drops commits
+    # made there. find_repos walks to depth 4 and prunes vendored subtrees.
+    # No ownership filter is needed here because summarize_today already
+    # filters by author, so a vendored clone can only appear if the user
+    # authored a commit in it today.
+    repos = daily_note_update.find_repos(daily_note_update.DEFAULT_ROOTS)
     summary = commit_summary.summarize_today(repos, date=date)
     md = commit_summary.format_markdown(summary)
     ts = datetime.now().strftime("%H:%M")
