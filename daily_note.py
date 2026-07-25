@@ -39,15 +39,19 @@ TEMPLATE_PATH = (VAULT_DIR / "System" / "00-09_system_meta" / "02_templates"
 
 SECTIONS = {
     "frontmatter":          None,               # special: YAML block at top
+    # Work block — directly under the hero image, so a screen capture of the
+    # top of the note shows what the agent is doing right now.
+    "live_feed":            "## Live Feed",
+    "work_efforts":         "## Work Efforts",
+    "in_the_lab":           "## In the Lab",
+    "commits_today":        "## Commits Today",
+    "claude_session_log":   "## Claude Code Session Log",
+    # Context block — the day's ambient material, read once in the morning.
     "daily_reading":        "## Daily Reading",
     "location":             "## Location",
     "sitrep":               "## Sitrep",
     "research_feed":        "## Research Feed",
-    "in_the_lab":           "## In the Lab",
-    "work_efforts":         "## Work Efforts",
     "idea_dump":            "## Idea Dump",
-    "claude_session_log":   "## Claude Code Session Log",
-    "commits_today":        "## Commits Today",
     "tomorrows_top_3":      "## Tomorrow's Top 3",
     "waft_workspace":       "## WAFT Workspace",
     # Legacy sections — kept for backward compat with older notes
@@ -63,6 +67,7 @@ SECTIONS = {
 
 # Sections that AI systems should write to (vs. user-only sections)
 AI_WRITABLE = {
+    "live_feed",
     "daily_reading", "location", "sitrep", "research_feed", "in_the_lab", "work_efforts",
     "claude_session_log", "commits_today", "tomorrows_top_3", "waft_workspace",
     # Legacy (still writable for older notes)
@@ -345,8 +350,12 @@ def write_section(section: str, content: str, actor: str = "claude",
         # Replace entire section body
         new_text = _replace_section(text, header, content)
 
+    # Compare content against content: the extracted body carries the section's
+    # trailing separator, which _replace_section preserves rather than writes,
+    # so comparing raw would flag every identical rewrite as a failed no-op.
+    existing_content, _ = _split_trailer(_extract_section(text, header))
     if new_text == text and content.strip() \
-            and _extract_section(text, header).strip() != content.strip():
+            and existing_content.strip() != content.strip():
         raise RuntimeError(
             f"write_section produced no change for '{section}' — refusing to "
             f"report success on a silent no-op"
@@ -502,17 +511,53 @@ def _extract_section(text: str, header: str) -> str:
         return ""
 
 
+def _split_trailer(body: str):
+    """Split a section body into (content, trailer).
+
+    The trailer is the blank lines and `---` rule that separate this section
+    from the next one. It is layout, not content, and it belongs to the note
+    rather than to whoever is writing the section.
+    """
+    lines = body.splitlines(keepends=True)
+    trailer = []
+    while lines:
+        while lines and not lines[-1].strip():
+            trailer.insert(0, lines.pop())
+        if lines and lines[-1].strip() == "---":
+            trailer.insert(0, lines.pop())
+            continue
+        break
+    return "".join(lines), "".join(trailer)
+
+
 def _replace_section(text: str, header: str, new_body: str) -> str:
-    """Replace the body of a section (between its header and the next header)."""
+    """Replace the body of a section (between its header and the next header).
+
+    Preserves the section's trailing separator. Without this, a replace-mode
+    write left the last line of the new body butted straight against the next
+    `## ` header — and when that last line is a blockquote (any callout-shaped
+    section, e.g. Live Feed), markdown lazy continuation absorbs the following
+    heading INTO the callout. Same failure mode `_join_appended` guards against
+    on the append path, from the other direction.
+    """
     try:
         level = len(header) - len(header.lstrip("#"))
         escaped = re.escape(header)
         pattern = rf'(^{escaped}\s*\n)(.*?)(?=^#{{{1},{level}}} |\Z)'
         if not new_body.endswith("\n"):
             new_body += "\n"
+
+        def _sub(m):
+            _, trailer = _split_trailer(m.group(2))
+            # A section with no trailer at all still needs one blank line, or
+            # the next heading is swallowed.
+            if not trailer.startswith("\n"):
+                trailer = "\n" + trailer
+            return m.group(1) + new_body + trailer
+
         # Function replacement so new_body is inserted literally — a raw
         # replacement string chokes on backslashes (e.g. LaTeX in arXiv titles).
-        result = re.sub(pattern, lambda m: m.group(1) + new_body, text, count=1,
+        result = re.sub(pattern, _sub, text, count=1,
                         flags=re.MULTILINE | re.DOTALL)
         return result
     except re.error:

@@ -478,28 +478,29 @@ def _write_daily_reading(
         except Exception as e:
             return False, f"failed ({type(e).__name__}): {e}"
 
-    # Section header not in note — inject it after the hero_image block (or nav block)
+    # Section header not in note (legacy note predating the template) — inject
+    # it at the top of the context block, NOT under the hero image. The space
+    # directly below the image belongs to the work block (Live Feed, Work
+    # Efforts, In the Lab, Commits Today, Session Log) so the top of the note
+    # shows what the agent is doing rather than the morning's horoscope.
     path = daily_note.daily_path()
     text = path.read_text(encoding="utf-8")
 
-    section_block = f"## Daily Reading\n\n{md}\n"
+    section_block = f"## Daily Reading\n\n{md}\n\n---\n\n"
 
-    # Prefer inserting after <!-- /hero_image --> if present
-    if "<!-- /hero_image -->" in text:
-        new_text = text.replace(
-            "<!-- /hero_image -->",
-            f"<!-- /hero_image -->\n\n{section_block}",
-            1,
-        )
+    for anchor in ("## Location", "## Sitrep", "## Research Feed"):
+        if re.search(rf'^{re.escape(anchor)}\s*$', text, re.MULTILINE):
+            new_text = re.sub(
+                rf'^{re.escape(anchor)}$',
+                f"{section_block}{anchor}",
+                text,
+                count=1,
+                flags=re.MULTILINE,
+            )
+            break
     else:
-        # Fall back: insert before ## Location
-        new_text = re.sub(
-            r'(^## Location)',
-            f"{section_block}\n\\1",
-            text,
-            count=1,
-            flags=re.MULTILINE,
-        )
+        # No context section to anchor to: append rather than drop the write.
+        new_text = text.rstrip("\n") + f"\n\n---\n\n## Daily Reading\n\n{md}\n"
 
     atomic_io.vault_write(path, new_text)
     return True, "injected"
