@@ -7,3 +7,4 @@ core_engine/pb_data/
 core_engine/pocketbase
 *.egg-info/
 .venv/
+.empirica_reflex_logs/
