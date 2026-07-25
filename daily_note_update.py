@@ -1,0 +1,278 @@
+#!/usr/bin/env python3
+"""
+daily_note_update.py: Roll the whole day's real changes into today's daily note.
+
+Unlike log_changes.py (which logs only what you type into one invocation), this
+scans every git repo you actually own and auto-discovers what changed *today*,
+across every window, session, and codebase, because it reads the filesystem,
+not the current chat. Run it from anywhere.
+
+What it captures (see --help for scope flags):
+  - COMMITTED: commits you authored today, per repo (subjects + files touched)
+  - WIP:       repos with uncommitted changes touched today (not yet committed)
+
+Ownership filter (the important part):
+  A repo only counts if you have EVER authored a commit in it. That single test
+  drops every vendored clone (llama.cpp, firecrawl, claude-cookbooks, AI-Scientist,
+  awesome-*, …) automatically, so the roll-up stays signal, not noise.
+
+Usage:
+  python3 daily_note_update.py                 # scan + write to today's note
+  python3 daily_note_update.py --dry-run       # print the entry, write nothing
+  python3 daily_note_update.py --no-wip        # committed work only
+  python3 daily_note_update.py --root ~/other  # scan a different root (repeatable)
+  python3 daily_note_update.py --focus "..."   # override the headline
+
+Exit codes:
+  0 = written (or dry-run printed)
+  1 = error (note missing/unwritable, bad args)
+"""
+
+import argparse
+import os
+import subprocess
+import sys
+import time
+from datetime import datetime
+from pathlib import Path
+
+_HERE = Path(__file__).parent
+sys.path.insert(0, str(_HERE))
+
+import daily_note
+
+# Roots scanned by default. macOS is case-insensitive, so ~/Code and ~/code
+# resolve to the same inode; realpath-dedup below collapses them.
+DEFAULT_ROOTS = ["~/Code", "~/code"]
+
+# Author substring matched against git's "Name <email>". The email local-part
+# is the most stable handle. Override with --author.
+DEFAULT_AUTHOR = "ctavolazzi"
+
+# Never descend into these while hunting for repos.
+SKIP_DIRS = {
+    "node_modules", ".venv", "venv", "env", ".env", "dist", "build",
+    ".next", ".nuxt", ".cache", "__pycache__", ".mypy_cache", ".pytest_cache",
+    "vendor", "target", ".gradle", ".svelte-kit", "coverage",
+    "test-projects", "test-fixtures",  # throwaway repo fixtures, not real work
+}
+
+MAX_DEPTH = 4  # relative to each root
+
+
+def _git(repo, *args, timeout=15):
+    """Run a git command in repo, return stripped stdout ('' on any failure)."""
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(repo), *args],
+            capture_output=True, text=True, timeout=timeout,
+        )
+        return out.stdout.strip() if out.returncode == 0 else ""
+    except (subprocess.TimeoutExpired, OSError):
+        return ""
+
+
+def find_repos(roots):
+    """Walk roots and yield every git repo dir, pruning heavy/vendored subtrees.
+
+    Descends past a found repo so nested independent repos are still caught,
+    but never walks into node_modules/.venv/etc.
+    """
+    seen = set()       # repo identities as (st_dev, st_ino)
+    root_seen = set()  # dedup roots the same way (~/Code == ~/code on macOS)
+    repos = []
+    for root in roots:
+        base = os.path.realpath(os.path.expanduser(root))
+        if not os.path.isdir(base):
+            continue
+        try:
+            bkey = os.stat(base)
+            bkey = (bkey.st_dev, bkey.st_ino)
+        except OSError:
+            continue
+        if bkey in root_seen:
+            continue
+        root_seen.add(bkey)
+        for dirpath, dirnames, _files in os.walk(base):
+            depth = dirpath[len(base):].count(os.sep)
+            if depth >= MAX_DEPTH:
+                dirnames[:] = []
+            dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
+            if os.path.isdir(os.path.join(dirpath, ".git")):
+                try:
+                    st = os.stat(dirpath)
+                except OSError:
+                    continue
+                key = (st.st_dev, st.st_ino)
+                if key not in seen:
+                    seen.add(key)
+                    repos.append(os.path.realpath(dirpath))
+    return repos
+
+
+def is_owned(repo, author):
+    """True if `author` has ever authored a commit here (drops vendored clones)."""
+    return bool(_git(repo, "log", "-1", "--author", author, "--format=%H"))
+
+
+def commits_today(repo, author, since):
+    """Return list of commit subjects authored by `author` since `since`."""
+    raw = _git(repo, "log", f"--since={since}", "--author", author,
+               "--no-merges", "--format=%s")
+    return [line for line in raw.splitlines() if line.strip()]
+
+
+def files_touched_today(repo, author, since):
+    """Count of unique files touched by today's commits."""
+    raw = _git(repo, "log", f"--since={since}", "--author", author,
+               "--no-merges", "--name-only", "--format=")
+    return len({line for line in raw.splitlines() if line.strip()})
+
+
+def wip_status(repo, midnight_epoch):
+    """(changed_file_count, touched_today) for uncommitted work.
+
+    touched_today is True if any changed/untracked file was modified since
+    midnight. That's what distinguishes 'worked on today but not committed'
+    from a repo that's just been sitting dirty for weeks.
+    """
+    raw = _git(repo, "status", "--porcelain")
+    lines = [ln for ln in raw.splitlines() if ln.strip()]
+    if not lines:
+        return 0, False
+    touched_today = False
+    for ln in lines:
+        path = ln[3:] if len(ln) > 3 else ln
+        if " -> " in path:  # rename: take the destination
+            path = path.split(" -> ", 1)[1]
+        path = path.strip().strip('"')
+        try:
+            if os.path.getmtime(os.path.join(repo, path)) >= midnight_epoch:
+                touched_today = True
+                break
+        except OSError:
+            continue
+    return len(lines), touched_today
+
+
+def scan(roots, author, since, midnight_epoch, include_wip):
+    """Return (committed, wip) lists of per-repo dicts for owned repos."""
+    committed, wip = [], []
+    for repo in find_repos(roots):
+        if not is_owned(repo, author):
+            continue
+        subjects = commits_today(repo, author, since)
+        if subjects:
+            committed.append({
+                "name": os.path.basename(repo),
+                "path": repo,
+                "count": len(subjects),
+                "subjects": subjects,
+                "files": files_touched_today(repo, author, since),
+            })
+        elif include_wip:
+            n, touched = wip_status(repo, midnight_epoch)
+            if n and touched:
+                wip.append({"name": os.path.basename(repo), "path": repo, "count": n})
+    committed.sort(key=lambda r: r["count"], reverse=True)
+    wip.sort(key=lambda r: r["count"], reverse=True)
+    return committed, wip
+
+
+def render(committed, wip, focus_override=None):
+    """Build (focus, changes, context) for daily_note.append_session_log()."""
+    total_commits = sum(r["count"] for r in committed)
+    n_c, n_w = len(committed), len(wip)
+
+    if focus_override:
+        focus = focus_override
+    elif not committed and not wip:
+        focus = "No committed or WIP changes detected today"
+    else:
+        parts = []
+        if n_c:
+            parts.append(f"{total_commits} commit(s) in {n_c} repo(s)")
+        if n_w:
+            parts.append(f"{n_w} repo(s) with WIP")
+        focus = "Daily changes: " + ", ".join(parts)
+
+    changes = []
+    for r in committed:
+        preview = "; ".join(r["subjects"][:3])
+        if r["count"] > 3:
+            preview += f"; +{r['count'] - 3} more"
+        changes.append(f"**{r['name']}** - {r['count']} commit(s), "
+                       f"{r['files']} file(s): {preview}")
+    for r in wip:
+        changes.append(f"**{r['name']}** - WIP: {r['count']} uncommitted file(s), "
+                       f"not committed today")
+
+    # Full per-repo commit subjects go in the foldable context block.
+    ctx_lines = []
+    for r in committed:
+        ctx_lines.append(f"{r['name']} ({r['path']}):")
+        ctx_lines.extend(f"  - {s}" for s in r["subjects"])
+    context = "\n".join(ctx_lines)
+
+    return focus, changes, context
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Roll today's changes across all owned repos into the daily note")
+    parser.add_argument("--root", action="append", dest="roots",
+                        help="root dir to scan (repeatable; default ~/Code)")
+    parser.add_argument("--author", default=DEFAULT_AUTHOR,
+                        help=f"git author substring (default {DEFAULT_AUTHOR!r})")
+    parser.add_argument("--since", default=None,
+                        help="git --since value (default: today 00:00 local)")
+    parser.add_argument("--no-wip", action="store_true",
+                        help="committed work only; skip uncommitted WIP")
+    parser.add_argument("--focus", default=None, help="override the headline")
+    parser.add_argument("--date", default=None, help="target note date YYYY-MM-DD")
+    parser.add_argument("--actor", default="claude", help="actor tag (default claude)")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="print the rendered entry, write nothing")
+    args = parser.parse_args()
+
+    roots = args.roots or DEFAULT_ROOTS
+    midnight = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    since = args.since or midnight.strftime("%Y-%m-%d 00:00:00")
+    midnight_epoch = midnight.timestamp()
+
+    committed, wip = scan(roots, args.author, since, midnight_epoch,
+                          include_wip=not args.no_wip)
+    focus, changes, context = render(committed, wip, args.focus)
+
+    if args.dry_run:
+        print(f"focus:   {focus}\n")
+        print("changes:")
+        for c in changes:
+            print(f"  - {c}")
+        if context:
+            print("\ncontext (foldable):")
+            for line in context.splitlines():
+                print(f"  {line}")
+        print(f"\n[dry-run] {len(committed)} committed repo(s), "
+              f"{len(wip)} WIP repo(s): nothing written")
+        return 0
+
+    try:
+        result = daily_note.append_session_log(
+            focus=focus, changes=changes, next_steps="",
+            actor=args.actor, date=args.date, files=[], context=context,
+        )
+    except PermissionError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+
+    print(f"logged: {result['section']} ({result['timestamp']}) - "
+          f"{len(committed)} committed, {len(wip)} WIP")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
