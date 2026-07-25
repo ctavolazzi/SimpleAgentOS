@@ -655,19 +655,15 @@ def check_work_context() -> List[Check]:
         if str(HERE) not in sys.path:
             sys.path.insert(0, str(HERE))
         import commit_summary
-        repo_paths = [CODE_ROOT]
-        active = CODE_ROOT / "active"
-        if active.exists():
-            for d in active.iterdir():
-                if d.is_dir() and (d / ".git").exists():
-                    repo_paths.append(d)
+        import harness_lib
+        # Use the canonical discovery so this matches git_scanner's repo set
+        # (root + top-level dirs + active/*), not just root + active/*.
+        repo_paths = harness_lib.discover_repos(CODE_ROOT)
         result = commit_summary.summarize_today(repo_paths)
-        if isinstance(result, dict):
-            total = sum(len(v) if isinstance(v, list) else 0 for v in result.values())
-            active_repos = [k for k, v in result.items() if isinstance(v, list) and v]
-        else:
-            total = 0
-            active_repos = []
+        # summarize_today returns {"repos": {name: {...}}, "total_commits": N, ...}
+        # Read those keys directly; the top-level values are never lists.
+        total = result.get("total_commits", 0)
+        active_repos = sorted(result.get("repos", {}))
         out.append(Check(
             id="F3", category="work", name="Commits today across repos",
             status=PASS, message=f"{total} commits in {len(active_repos)} repos (scanned {len(repo_paths)})",

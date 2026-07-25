@@ -2,15 +2,17 @@
 """
 wrap_up.py — Evening orchestrator. Mirror of spin_up.py.
 
-Phase 1 (gather):  commits since midnight, note section state, dirty repos
+Phase 1 (gather):  commits since midnight, note section state, dirty repos,
+                   words written across the daily note and everything wired to it
 Phase 2 (write):   commits_today + tomorrows_top_3 + session log entries
 Phase 3 (backup):  vault-backup.sh if available (build Phase 0 first)
 
 Usage:
-  python3 wrap_up.py              # full run
-  python3 wrap_up.py --dry-run    # gather + print, no writes
-  python3 wrap_up.py --no-backup  # skip vault push
-  python3 wrap_up.py --force      # overwrite already-filled sections
+  python3 wrap_up.py                  # full run
+  python3 wrap_up.py --dry-run        # gather + print, no writes
+  python3 wrap_up.py --no-backup      # skip vault push
+  python3 wrap_up.py --force          # overwrite already-filled sections
+  python3 wrap_up.py --open-dashboard # open the word-count dashboard when done
 """
 
 import json
@@ -24,6 +26,16 @@ from typing import Tuple
 import daily_note
 import commit_summary
 import waft_workspace
+
+# Additive: a word-count failure must never stop the day being closed out.
+try:
+    import word_count
+except Exception:
+    word_count = None
+try:
+    import wordcount_dashboard
+except Exception:
+    wordcount_dashboard = None
 
 # ── Config ──────────────────────────────────────────────────────────────────
 
@@ -131,6 +143,22 @@ def _gather_note_state(date: str = None) -> Tuple[dict, str]:
         empty  = [k for k, v in status.items() if v == "empty"]
         print(f"{len(filled)} filled, {len(empty)} empty")
         return {"filled": filled, "empty": empty}, "ok"
+    except Exception as e:
+        print(f"failed: {e}")
+        return {}, f"failed: {e}"
+
+
+def _gather_words(date: str = None) -> Tuple[dict, str]:
+    """Words written into the daily note and every file wired to it."""
+    print("  • words...", end=" ", flush=True)
+    if word_count is None:
+        print("skipped (word_count.py not importable)")
+        return {}, "skipped: module unavailable"
+    try:
+        scan = word_count.scan_day(date)
+        print(f"{scan['words_written']:,} word(s) across "
+              f"{scan['files_written']} file(s)")
+        return scan, "ok"
     except Exception as e:
         print(f"failed: {e}")
         return {}, f"failed: {e}"
@@ -310,8 +338,23 @@ def _award_quest_fitness(done_quests: list, date: str = None) -> None:
 
 # ── EOD Summary ─────────────────────────────────────────────────────────────
 
+def _build_dashboard(date: str, open_browser: bool) -> Tuple[bool, str]:
+    """Regenerate the word-count dashboard so it is current after EOD."""
+    print("  • wordcount dashboard...", end=" ", flush=True)
+    if wordcount_dashboard is None:
+        print("skipped (module unavailable)")
+        return True, "skipped: module unavailable"
+    try:
+        result = wordcount_dashboard.build(date=date, open_browser=open_browser)
+        print("opened" if open_browser else f"written → {result['path']}")
+        return True, result["path"]
+    except Exception as e:
+        print(f"failed: {e}")
+        return False, f"failed: {e}"
+
+
 def _write_eod_summary(commits: dict, dirty: list, note_state: dict,
-                       date: str = None) -> Tuple[bool, str]:
+                       words: dict = None, date: str = None) -> Tuple[bool, str]:
     """Generate and append an EOD summary to the daily note's Session Recap section."""
     print("  • eod_summary...", end=" ", flush=True)
     try:
@@ -332,6 +375,16 @@ def _write_eod_summary(commits: dict, dirty: list, note_state: dict,
             "0 commits captured (root repo scan pending fix)"
         )
 
+        # Words block — the daily note plus everything wired to it
+        if words and word_count is not None:
+            try:
+                hist = word_count.history(30, end_date=date)
+            except Exception:
+                hist = None
+            words_block = word_count.format_md(words, hist)
+        else:
+            words_block = "- (word count unavailable)"
+
         ts = datetime.now().strftime("%H:%M")
         label_dt = (datetime.strptime(date, "%Y-%m-%d") if date else datetime.now())
         weekday = label_dt.strftime("%A, %B %-d")
@@ -346,6 +399,12 @@ def _write_eod_summary(commits: dict, dirty: list, note_state: dict,
 
 ### Key Decisions
 {decisions_block}
+
+---
+
+### Words Written
+
+{words_block}
 
 ---
 
@@ -434,6 +493,9 @@ def main():
     parser.add_argument("--date",      metavar="YYYY-MM-DD", default=None,
                         help="Day to close out (default: auto — before 06:00 "
                              "wraps the previous day if its note is the live one)")
+    parser.add_argument("--open-dashboard", action="store_true",
+                        help="Open the word-count dashboard in the browser "
+                             "(it is regenerated either way)")
     args = parser.parse_args()
 
     date_str = _resolve_date(args.date)
@@ -454,11 +516,16 @@ def main():
     commits, cs = _gather_commits(repos, date_str)
     note_state, ns = _gather_note_state(date_str)
     dirty,   ds = _gather_dirty(repos)
+    words,   ws = _gather_words(date_str)
 
     results["phases"]["gather"] = {
         "commits":    {"status": cs, "total": commits.get("total_commits", 0)},
         "note_state": {"status": ns, "filled": len(note_state.get("filled", []))},
         "dirty":      {"status": ds, "count": len(dirty)},
+        "words":      {"status": ws,
+                       "written": words.get("words_written", 0),
+                       "files": words.get("files_written", 0),
+                       "in_scope": words.get("words_in_scope", 0)},
     }
 
     # Phase 2 ── Write
@@ -471,8 +538,11 @@ def main():
         ok, s = _write_tomorrows_top3(commits, dirty, args.force, date_str)
         phase2["tomorrows_top_3"] = {"ok": ok, "status": s}
 
-        ok, s = _write_eod_summary(commits, dirty, note_state, date_str)
+        ok, s = _write_eod_summary(commits, dirty, note_state, words, date_str)
         phase2["eod_summary"] = {"ok": ok, "status": s}
+
+        ok, s = _build_dashboard(date_str, args.open_dashboard)
+        phase2["wordcount_dashboard"] = {"ok": ok, "status": s}
 
         # Write session-end entry to being journal
         total_c = commits.get("total_commits", 0)
@@ -579,8 +649,9 @@ def main():
     if wheel_warnings:
         context_lines.append("⚠️ Wheel warnings: " + "; ".join(wheel_warnings))
 
+    words_frag = (f" · {words['words_written']:,} words" if words else "")
     _log("wrap-up",
-         f"{total_c} commits · {len(dirty)} dirty · vault: {vault_status}",
+         f"{total_c} commits · {len(dirty)} dirty{words_frag} · vault: {vault_status}",
          changes=written_sections if written_sections else None,
          files=[f"_experiments/SimpleAgentOS/wrap_up.py"],
          next_steps="Phase 0: build tools/vault-backup.sh" if not VAULT_BACKUP.exists() else "",
@@ -593,6 +664,12 @@ def main():
     print(f"✅  Wrap-up complete at {datetime.now().strftime('%H:%M:%S')}")
     print(f"📊  Commits today : {commits.get('total_commits', 0)} "
           f"across {commits.get('total_repos_touched', 0)} repo(s)")
+    if words:
+        print(f"📝  Words written : {words['words_written']:,} "
+              f"({words['prose_written']:,} prose · {words['code_written']:,} code) "
+              f"across {words['files_written']} file(s)")
+        print(f"    In scope      : {words['words_in_scope']:,} words across "
+              f"{words['files_in_scope']} associated file(s)")
     print(f"🧹  Dirty repos   : {len(dirty)}")
     print(f"📋  Transcript    : {_write_transcript(results)}")
     print("=" * 60)

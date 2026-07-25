@@ -10,6 +10,9 @@ not the current chat. Run it from anywhere.
 What it captures (see --help for scope flags):
   - COMMITTED: commits you authored today, per repo (subjects + files touched)
   - WIP:       repos with uncommitted changes touched today (not yet committed)
+  - WORDS:     words written into the daily note and every file wired to it,
+               plus an HTML dashboard (heatmap, trend, word cloud) that opens
+               in the browser
 
 Ownership filter (the important part):
   A repo only counts if you have EVER authored a commit in it. That single test
@@ -17,9 +20,11 @@ Ownership filter (the important part):
   awesome-*, …) automatically, so the roll-up stays signal, not noise.
 
 Usage:
-  python3 daily_note_update.py                 # scan + write to today's note
+  python3 daily_note_update.py                 # scan + write + open dashboard
   python3 daily_note_update.py --dry-run       # print the entry, write nothing
   python3 daily_note_update.py --no-wip        # committed work only
+  python3 daily_note_update.py --no-open       # build the dashboard, don't open it
+  python3 daily_note_update.py --no-words      # skip word counting entirely
   python3 daily_note_update.py --root ~/other  # scan a different root (repeatable)
   python3 daily_note_update.py --focus "..."   # override the headline
 
@@ -40,6 +45,18 @@ _HERE = Path(__file__).parent
 sys.path.insert(0, str(_HERE))
 
 import daily_note
+
+# Word counting is additive: if the modules are missing or the vault is
+# unreachable, the git roll-up still runs. It is never allowed to be the
+# reason a day's changes go unlogged.
+try:
+    import word_count
+except Exception:
+    word_count = None
+try:
+    import wordcount_dashboard
+except Exception:
+    wordcount_dashboard = None
 
 # Roots scanned by default. macOS is case-insensitive, so ~/Code and ~/code
 # resolve to the same inode; realpath-dedup below collapses them.
@@ -179,14 +196,44 @@ def scan(roots, author, since, midnight_epoch, include_wip):
     return committed, wip
 
 
-def render(committed, wip, focus_override=None):
+def count_words(date=None, depth=2):
+    """Word-count scan for the daily note's wagonwheel. None if unavailable."""
+    if word_count is None:
+        return None
+    try:
+        return word_count.scan_day(date, max_depth=depth)
+    except Exception as e:
+        print(f"  (word count skipped: {e})", file=sys.stderr)
+        return None
+
+
+def build_dashboard(args, words):
+    """Build the HTML dashboard and open it. Never fatal — the note is written."""
+    if args.no_words or args.no_dashboard or words is None:
+        return None
+    if wordcount_dashboard is None:
+        print("  (dashboard skipped: wordcount_dashboard.py not importable)",
+              file=sys.stderr)
+        return None
+    try:
+        result = wordcount_dashboard.build(
+            date=args.date, open_browser=not args.no_open, max_depth=args.depth)
+    except Exception as e:
+        print(f"  (dashboard failed: {e})", file=sys.stderr)
+        return None
+    verb = "opened" if not args.no_open else "written"
+    print(f"dashboard {verb}: {result['path']}")
+    return result
+
+
+def render(committed, wip, focus_override=None, words=None):
     """Build (focus, changes, context) for daily_note.append_session_log()."""
     total_commits = sum(r["count"] for r in committed)
     n_c, n_w = len(committed), len(wip)
 
     if focus_override:
         focus = focus_override
-    elif not committed and not wip:
+    elif not committed and not wip and not (words and words["words_written"]):
         focus = "No committed or WIP changes detected today"
     else:
         parts = []
@@ -194,9 +241,20 @@ def render(committed, wip, focus_override=None):
             parts.append(f"{total_commits} commit(s) in {n_c} repo(s)")
         if n_w:
             parts.append(f"{n_w} repo(s) with WIP")
+        if words and words["words_written"]:
+            parts.append(f"{words['words_written']:,} words written")
         focus = "Daily changes: " + ", ".join(parts)
 
     changes = []
+    if words:
+        changes.append(
+            f"**Words** - {words['words_written']:,} written "
+            f"({words['prose_written']:,} prose + {words['code_written']:,} code) "
+            f"across {words['files_written']} file(s): "
+            f"{words['files_linked_fresh']} wired to the note, "
+            f"{words['files_unlinked_fresh']} unlinked. "
+            f"Daily note itself {words['daily_note_words']:,} words."
+        )
     for r in committed:
         preview = "; ".join(r["subjects"][:3])
         if r["count"] > 3:
@@ -212,6 +270,13 @@ def render(committed, wip, focus_override=None):
     for r in committed:
         ctx_lines.append(f"{r['name']} ({r['path']}):")
         ctx_lines.extend(f"  - {s}" for s in r["subjects"])
+    if words and words["files"]:
+        if ctx_lines:
+            ctx_lines.append("")
+        ctx_lines.append("Words by file (● wired · ○ unlinked · · earlier):")
+        badge = {"linked_fresh": "●", "unlinked_fresh": "○", "linked_carried": "·"}
+        for rec in words["files"][:15]:
+            ctx_lines.append(f"  {badge[rec['bucket']]} {rec['total']:>6,}  {rec['rel']}")
     context = "\n".join(ctx_lines)
 
     return focus, changes, context
@@ -233,6 +298,16 @@ def main() -> int:
     parser.add_argument("--actor", default="claude", help="actor tag (default claude)")
     parser.add_argument("--dry-run", action="store_true",
                         help="print the rendered entry, write nothing")
+    parser.add_argument("--no-words", action="store_true",
+                        help="skip word counting and the dashboard entirely")
+    parser.add_argument("--no-dashboard", action="store_true",
+                        help="count words, but don't build the HTML dashboard")
+    parser.add_argument("--no-open", action="store_true",
+                        help="build the dashboard but don't open the browser")
+    parser.add_argument("--dashboard", action="store_true",
+                        help="build (and open) the dashboard even on --dry-run")
+    parser.add_argument("--depth", type=int, default=2,
+                        help="wikilink hops to follow from the daily note (default 2)")
     args = parser.parse_args()
 
     roots = args.roots or DEFAULT_ROOTS
@@ -242,7 +317,8 @@ def main() -> int:
 
     committed, wip = scan(roots, args.author, since, midnight_epoch,
                           include_wip=not args.no_wip)
-    focus, changes, context = render(committed, wip, args.focus)
+    words = None if args.no_words else count_words(args.date, args.depth)
+    focus, changes, context = render(committed, wip, args.focus, words)
 
     if args.dry_run:
         print(f"focus:   {focus}\n")
@@ -255,6 +331,10 @@ def main() -> int:
                 print(f"  {line}")
         print(f"\n[dry-run] {len(committed)} committed repo(s), "
               f"{len(wip)} WIP repo(s): nothing written")
+        if args.dashboard:
+            build_dashboard(args, words)
+        elif words:
+            print("[dry-run] dashboard skipped — pass --dashboard to build it")
         return 0
 
     try:
@@ -269,8 +349,13 @@ def main() -> int:
         print(f"error: {e}", file=sys.stderr)
         return 1
 
+    tail = ""
+    if words:
+        tail = f", {words['words_written']:,} words"
     print(f"logged: {result['section']} ({result['timestamp']}) - "
-          f"{len(committed)} committed, {len(wip)} WIP")
+          f"{len(committed)} committed, {len(wip)} WIP{tail}")
+
+    build_dashboard(args, words)
     return 0
 
 
