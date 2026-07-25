@@ -572,6 +572,10 @@ class TestSecretScrubPrecision(RigorousBase):
             "sk-ant-api03-" + "a" * 40,
             "ghp_" + "a" * 36,
             "gho_" + "b" * 36,
+            # Built by concatenation, like its neighbours above, so the literal
+            # never appears in the file. GitHub push protection flags a
+            # well-formed Slack token even inside a redaction test, and a
+            # blocked push is a worse outcome than a slightly uglier fixture.
             "xoxb-" + "0" * 12 + "-" + "1" * 12 + "-" + "c" * 24,
             "AKIAIOSFODNN7EXAMPLE",
             "api_key: supersecret12345",
