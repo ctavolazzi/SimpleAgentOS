@@ -85,8 +85,14 @@ def _resolve_date(cli_date: str = None) -> str:
 
 def _log(phase: str, msg: str, changes: list = None, files: list = None,
          next_steps: str = "", context: str = "", date: str = None):
-    """Append compact journal entry to claude_session_log. Never raises."""
+    """Append compact journal entry to claude_session_log. Never raises.
+
+    Keyed by phase and day: wrap-up is routinely run more than once (and
+    sometimes in every open window at once), and each run should refresh its
+    own entry rather than stack another copy beside it.
+    """
     try:
+        day = date or datetime.now().strftime("%Y-%m-%d")
         daily_note.append_session_log(
             focus=f"[{phase}] {msg}",
             changes=changes or [],
@@ -94,6 +100,7 @@ def _log(phase: str, msg: str, changes: list = None, files: list = None,
             next_steps=next_steps,
             context=context,
             date=date,
+            dedupe_key=f"wrapup:{phase}:{day}",
         )
     except Exception:
         pass

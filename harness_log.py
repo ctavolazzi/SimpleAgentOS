@@ -101,7 +101,14 @@ def log_op(action, actor, target, result, content=None,
         duration_ms=duration_ms,
         timestamp=_now(),
     )
-    trail_result = _get_trail().mark(None, marker, metadata)
+    # Telemetry is observation, never a gate. Under heavy concurrency (a slash
+    # command fired in every open window at once) the trail's SQLite file can
+    # raise "locking protocol"; letting that escape would report failure for a
+    # note write that already succeeded. Same contract as the bridge below.
+    try:
+        trail_result = _get_trail().mark(None, marker, metadata)
+    except Exception:                                    # noqa: BLE001
+        trail_result = None
 
     # Additive bridge → section_tracker (best-effort; never blocks primary path)
     op_name = _ACTION_TO_OP.get(action)

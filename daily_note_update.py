@@ -338,9 +338,13 @@ def main() -> int:
         return 0
 
     try:
+        # One roll-up per day, replaced in place. Without this key every
+        # invocation appends its own copy, and because the word counter
+        # counts the note itself, each copy inflates the next one's total.
         result = daily_note.append_session_log(
             focus=focus, changes=changes, next_steps="",
             actor=args.actor, date=args.date, files=[], context=context,
+            dedupe_key=f"rollup:{args.date or datetime.now().strftime('%Y-%m-%d')}",
         )
     except PermissionError as e:
         print(f"error: {e}", file=sys.stderr)

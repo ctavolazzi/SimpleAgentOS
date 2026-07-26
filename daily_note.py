@@ -300,7 +300,8 @@ def last_handoff() -> dict:
 
 
 def write_section(section: str, content: str, actor: str = "claude",
-                  mode: str = "replace", date: Optional[str] = None) -> dict:
+                  mode: str = "replace", date: Optional[str] = None,
+                  dedupe_key: Optional[str] = None) -> dict:
     """
     Write to a specific section of the daily note.
 
@@ -310,6 +311,11 @@ def write_section(section: str, content: str, actor: str = "claude",
         actor: Who's writing — "claude", "gemma", "user", "cron"
         mode: "replace" overwrites section body, "append" adds to end
         date: Date string (YYYY-MM-DD), defaults to today
+        dedupe_key: Append-mode idempotency key. Any existing block written
+            under the same key is removed before this one is added, so N runs
+            of the same logical entry leave one block rather than N. Use it
+            for anything a user might fire twice, or fire in ten windows at
+            once — a roll-up, an EOD recap, a status refresh.
 
     Returns:
         dict with status, section, actor, timestamp
@@ -327,42 +333,55 @@ def write_section(section: str, content: str, actor: str = "claude",
         return _write_frontmatter(content, date)
 
     path = daily_path(date)
-    text = read_full(date)
     header = SECTIONS[section]
-    ts = datetime.now().strftime("%H:%M")
+    section_created = False
 
-    # Self-heal: if the header is absent (legacy note, trimmed template),
-    # append the section at the end instead of silently dropping the write.
-    header_present = re.search(rf'^{re.escape(header)}\s*$', text, re.MULTILINE)
-    if not header_present:
-        body = f"**[{actor} @ {ts}]**\n{content}" if mode == "append" else content
-        if not body.endswith("\n"):
-            body += "\n"
-        new_text = text.rstrip("\n") + f"\n\n---\n\n{header}\n\n{body}"
-        if _log_op:
-            _log_op("write_section", actor, section, "section_created")
-    elif mode == "append":
-        # Add content after existing section body, before next header
-        old_body = _extract_section(text, header)
-        new_body = _join_appended(old_body, f"**[{actor} @ {ts}]**\n{content}")
-        new_text = _replace_section(text, header, new_body)
-    else:
-        # Replace entire section body
-        new_text = _replace_section(text, header, content)
-
-    # Compare content against content: the extracted body carries the section's
-    # trailing separator, which _replace_section preserves rather than writes,
-    # so comparing raw would flag every identical rewrite as a failed no-op.
-    existing_content, _ = _split_trailer(_extract_section(text, header))
-    if new_text == text and content.strip() \
-            and existing_content.strip() != content.strip():
-        raise RuntimeError(
-            f"write_section produced no change for '{section}' — refusing to "
-            f"report success on a silent no-op"
-        )
+    if dedupe_key:
+        content = content.rstrip("\n") + "\n" + _dedupe_mark(dedupe_key) + "\n"
 
     try:
+        # One lock spans the READ and the WRITE. Reading outside it is a
+        # lost-update race: concurrent writers each compute a new body from
+        # the same stale text, and the last one to land silently discards
+        # everything the others wrote. On 2026-07-25, 16 parallel sessions
+        # ran the daily-note harness at once and hit exactly this.
         with atomic_io.vault_lock():
+            text = read_full(date)
+            ts = datetime.now().strftime("%H:%M")
+
+            # Self-heal: if the header is absent (legacy note, trimmed
+            # template), append the section at the end instead of silently
+            # dropping the write.
+            header_present = re.search(rf'^{re.escape(header)}\s*$', text, re.MULTILINE)
+            if not header_present:
+                body = f"**[{actor} @ {ts}]**\n{content}" if mode == "append" else content
+                if not body.endswith("\n"):
+                    body += "\n"
+                new_text = text.rstrip("\n") + f"\n\n---\n\n{header}\n\n{body}"
+                section_created = True
+            elif mode == "append":
+                # Add content after existing section body, before next header
+                old_body = _extract_section(text, header)
+                if dedupe_key:
+                    old_body = _drop_keyed_blocks(old_body, dedupe_key)
+                new_body = _join_appended(old_body, f"**[{actor} @ {ts}]**\n{content}")
+                new_text = _replace_section(text, header, new_body)
+            else:
+                # Replace entire section body
+                new_text = _replace_section(text, header, content)
+
+            # Compare content against content: the extracted body carries the
+            # section's trailing separator, which _replace_section preserves
+            # rather than writes, so comparing raw would flag every identical
+            # rewrite as a failed no-op.
+            existing_content, _ = _split_trailer(_extract_section(text, header))
+            if new_text == text and content.strip() \
+                    and existing_content.strip() != content.strip():
+                raise RuntimeError(
+                    f"write_section produced no change for '{section}' — refusing to "
+                    f"report success on a silent no-op"
+                )
+
             atomic_io.atomic_write(path, new_text)
     except OSError as e:
         if _log_op:
@@ -370,6 +389,8 @@ def write_section(section: str, content: str, actor: str = "claude",
         raise
 
     if _log_op:
+        if section_created:
+            _log_op("write_section", actor, section, "section_created")
         _log_op("write_section", actor, section, "ok", content=content)
 
     return {
@@ -383,7 +404,8 @@ def write_section(section: str, content: str, actor: str = "claude",
 
 def append_session_log(focus: str, changes: list = None, next_steps: str = "",
                        actor: str = "claude", date: Optional[str] = None,
-                       files: list = None, context: str = "") -> dict:
+                       files: list = None, context: str = "",
+                       dedupe_key: Optional[str] = None) -> dict:
     """
     Append a compact journal entry to the session log.
 
@@ -399,6 +421,8 @@ def append_session_log(focus: str, changes: list = None, next_steps: str = "",
         next_steps: Brief next action (omitted if empty)
         files: List of file paths to link (renders as [[file]])
         context: Extra context string (nested callout if provided)
+        dedupe_key: Idempotency key — a re-run under the same key replaces
+            its previous entry instead of stacking a new one beside it.
     """
     ts = datetime.now().strftime("%H:%M")
     changes = changes or []
@@ -429,7 +453,8 @@ def append_session_log(focus: str, changes: list = None, next_steps: str = "",
     entry = "\n".join(lines) + "\n"
 
     target = "claude_session_log" if actor == "claude" else "session_log"
-    return write_section(target, entry, actor=actor, mode="append", date=date)
+    return write_section(target, entry, actor=actor, mode="append", date=date,
+                         dedupe_key=dedupe_key)
 
 
 def update_frontmatter_fields(fields: dict, date: Optional[str] = None) -> dict:
@@ -461,6 +486,46 @@ def update_frontmatter_fields(fields: dict, date: Optional[str] = None) -> dict:
 
 
 # ── Internal helpers ───────────────────────────────────────────────────
+
+def _dedupe_mark(key: str) -> str:
+    """Invisible marker identifying which logical entry a block is.
+
+    An HTML comment, so Obsidian does not render it and word_count strips it
+    before counting — the marker can never inflate a word total.
+    """
+    return f"<!-- dn-key:{key} -->"
+
+
+# Every append-mode block starts with the actor stamp write_section emits.
+_STAMP_RE = re.compile(r'^\*\*\[[^\]\n]+\]\*\*[ \t]*$', re.MULTILINE)
+
+
+def _drop_keyed_blocks(body: str, key: str) -> str:
+    """Remove previously appended blocks carrying `key`'s marker.
+
+    This is what makes a keyed append idempotent: N runs of the same logical
+    entry converge on one block instead of stacking N of them.
+    """
+    mark = _dedupe_mark(key)
+    if mark not in body:
+        return body
+
+    starts = [m.start() for m in _STAMP_RE.finditer(body)]
+    if not starts:
+        return body
+
+    parts = []
+    head = body[:starts[0]].rstrip("\n")
+    if head:
+        parts.append(head)
+    bounds = starts + [len(body)]
+    for start, end in zip(bounds, bounds[1:]):
+        block = body[start:end].rstrip("\n")
+        if block and mark not in block:
+            parts.append(block)
+
+    return ("\n\n".join(parts) + "\n") if parts else ""
+
 
 def _join_appended(old_body: str, addition: str) -> str:
     """
