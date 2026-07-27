@@ -838,8 +838,51 @@ def doctor() -> dict:
         "supervised": {"ok": launchd_loaded(), "detail": LAUNCHD_LABEL,
                        "fix": "python3 pb_journal.py launchd install"},
     }
+    checks.update(_search_checks())
     checks["_healthy"] = all(c["ok"] for c in checks.values() if isinstance(c, dict))
     return checks
+
+
+def _search_checks() -> dict:
+    """Index health, reported here so `doctor` stays the one place to look.
+
+    Imported lazily and defensively: journal_search is an optional layer over
+    this module, and pb_journal has to keep working if it is absent or broken.
+    A journal you cannot search is degraded; a journal that will not import is
+    not a journal.
+    """
+    try:
+        import journal_search as js
+    except Exception as exc:  # noqa: BLE001
+        return {"search_index": {"ok": False, "detail": f"journal_search unavailable: {exc}",
+                                 "fix": "check journal_search.py"}}
+    try:
+        info = js.status()
+    except Exception as exc:  # noqa: BLE001
+        return {"search_index": {"ok": False, "detail": f"status failed: {exc}",
+                                 "fix": "python3 journal_search.py index --rebuild"}}
+    stale = info.get("stale")
+    return {
+        "search_index": {
+            "ok": info["index_exists"] and not stale,
+            "detail": (f"{info['entries']} indexed"
+                       + (f", journal has {info['journal_entries']}"
+                          if info.get("journal_entries") is not None else "")
+                       if info["index_exists"] else "no index yet"),
+            "fix": "python3 journal_search.py index",
+        },
+        # Not being able to embed is a real downgrade, not a failure: BM25 still
+        # answers. Reported so the reason searches feel literal is visible.
+        "search_embeddings": {
+            "ok": info["embedder"]["available"],
+            "detail": (f"{info['embed_model'] or info['embedder']['model_name']}, "
+                       f"{int(info['coverage'] * 100)}% of entries embedded"
+                       if info["embedder"]["available"]
+                       else f"no embedder at {info['embedder']['binary']}"),
+            "fix": "build llama.cpp and put a GGUF embedding model at "
+                   f"{info['embedder']['model']}",
+        },
+    }
 
 
 # ── CLI ───────────────────────────────────────────────────────────────
@@ -930,11 +973,19 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_query.add_argument("-n", "--limit", type=int, default=50)
     p_query.add_argument("--offline", action="store_true", help="read data.db directly")
 
+    p_search = sub.add_parser(
+        "search", help="ranked search (meaning, not substring); see journal_search.py")
+    p_search.add_argument("text", nargs="+")
+    p_search.add_argument("-n", "--limit", type=int, default=10)
+    p_search.add_argument("--kind", default="")
+    p_search.add_argument("--project", default="")
+    p_search.add_argument("--lexical", action="store_true", help="BM25 only")
+
     p_recent = sub.add_parser("recent", help="most recent entries")
     p_recent.add_argument("-n", "--limit", type=int, default=20)
     p_recent.add_argument("--kind", default="")
 
-    for p in (p_query, p_recent):
+    for p in (p_query, p_recent, p_search):
         p.add_argument("--json", action="store_true", dest="as_json")
     for p in (p_log,):
         p.add_argument("--json", action="store_true", dest="as_json")
@@ -1010,6 +1061,21 @@ def main(argv: Optional[list[str]] = None) -> int:
             session_id=args.session_id, since=_resolve_since(args.since),
             until=args.until, limit=args.limit, offline=args.offline,
         )
+        _print_rows(rows, getattr(args, "as_json", False))
+        return 0
+
+    if args.cmd == "search":
+        try:
+            import journal_search as js
+        except Exception as exc:  # noqa: BLE001
+            print(f"journal_search unavailable ({exc}); falling back to substring query",
+                  file=sys.stderr)
+            rows = query(" ".join(args.text), kind=args.kind,
+                         project=args.project, limit=args.limit)
+            _print_rows(rows, getattr(args, "as_json", False))
+            return 0
+        rows = js.search(" ".join(args.text), limit=args.limit, kind=args.kind,
+                         project=args.project, semantic=not args.lexical)
         _print_rows(rows, getattr(args, "as_json", False))
         return 0
 
