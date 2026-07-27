@@ -124,14 +124,45 @@ class WheelTestCase(unittest.TestCase):
         r = wheel_check.check(DATE)
         self.assertTrue(any("placeholder" in e.lower() for e in r.errors))
 
-    def test_empty_journal_notes_flagged(self):
+    def _write_journal(self, body: str) -> None:
         (self.vault / "Claude Journal" / f"{DATE}.md").write_text(
             _fm(type="claude_journal", date=DATE,
                 parent=f'"[[Daily Notes/{DATE}]]"',
                 hub=f'"[[Hubs/{DATE}_hub]]"')
-            + "# Journal\n\n## Notes\n", encoding="utf-8")
+            + body, encoding="utf-8")
+
+    def test_empty_journal_flagged(self):
+        """spin_up's minimal template, nothing written in."""
+        self._write_journal("# Journal\n\n## Notes\n")
         r = wheel_check.check(DATE)
-        self.assertTrue(any("Notes" in e for e in r.errors))
+        self.assertTrue(any("CONTAINER: Journal" in e for e in r.errors))
+
+    def test_untouched_claude_journal_template_flagged(self):
+        """claude_journal.py's own template has no '## Notes' at all.
+
+        It must still be caught when nothing has been written into it, or an
+        empty journal passes purely by using the other generator.
+        """
+        self._write_journal(
+            "# Journal\n\n## Realizations\n\n"
+            "> [!abstract]+ Things That Clicked\n"
+            "> Moments where something resolved.\n\n"
+            "<!-- One bullet per realization -->\n"
+        )
+        r = wheel_check.check(DATE)
+        self.assertTrue(any("CONTAINER: Journal" in e for e in r.errors))
+
+    def test_written_claude_journal_template_passes(self):
+        """The regression that prompted this: a journal written via
+        `claude_journal add-realization` has no '## Notes' and used to fail
+        forever, which meant the wheel could never go green."""
+        self._write_journal(
+            "# Journal\n\n## Realizations\n\n"
+            "> [!abstract]+ Things That Clicked\n\n"
+            "- [13:31] a realization that was actually written down\n"
+        )
+        r = wheel_check.check(DATE)
+        self.assertFalse([e for e in r.errors if "CONTAINER: Journal" in e])
 
     # ── invariant 3: reciprocity (rim) ────────────────────────────
     def test_spoke_without_hub_backlink_flagged(self):

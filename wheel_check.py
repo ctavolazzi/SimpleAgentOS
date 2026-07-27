@@ -53,6 +53,36 @@ PLACEHOLDER_MARKERS = (
     "(check on startup)",
 )
 
+# Any one of these carrying real text means the journal was actually written
+# in. The first is spin_up's minimal template; the rest come from
+# claude_journal.py's own _TEMPLATE, which the `add-*` verbs append to.
+JOURNAL_CONTENT_SECTIONS = (
+    "## Notes",
+    "## Session Recap",
+    "## Realizations",
+    "## Open Questions",
+    "## What I Find Interesting",
+    "## Threads I'm Holding",
+)
+
+
+def _journal_has_content(text: str) -> bool:
+    """True if any journal content section holds more than its own scaffolding.
+
+    Callouts (`> [!abstract]+ ...`), italic prompts and HTML comments are what
+    the template ships with, so they do not count as having been written in.
+    """
+    for heading in JOURNAL_CONTENT_SECTIONS:
+        body = daily_note._extract_section(text, heading)
+        for line in body.splitlines():
+            line = line.strip()
+            if not line or line == "---":
+                continue
+            if line.startswith(("<!--", ">", "*")):
+                continue
+            return True
+    return False
+
 # Files that legitimately have few/no inbound links (entry points + containers).
 def _entry_basenames(date_str: str) -> set:
     return {
@@ -146,9 +176,15 @@ def check_containers(date_str: str, r: Result):
             continue
         hits = sorted({m for m in PLACEHOLDER_MARKERS if m in text})
         if label == "Journal":
-            notes = daily_note._extract_section(text, "## Notes").strip()
-            if not notes:
-                hits = sorted(set(hits) | {"empty ## Notes"})
+            # Two templates produce journals. spin_up writes a minimal one with
+            # a single "## Notes" section; claude_journal.py's own _TEMPLATE
+            # writes "## Realizations", "## Open Questions" and friends and has
+            # no "## Notes" at all. Requiring one specific heading meant a
+            # journal created by the canonical generator could never pass, and
+            # a journal that passed could not accept `claude_journal add-*`.
+            # Accept either shape: what matters is that something was written.
+            if not _journal_has_content(text):
+                hits = sorted(set(hits) | {"no journal content"})
         if hits:
             r.err(f"CONTAINER: {label} still has placeholders: {', '.join(hits)}")
         else:
