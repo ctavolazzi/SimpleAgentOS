@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  SimpleAgentOS agent journal store, supervised.
+
+  Without this, PocketBase only runs when somebody types `pb_journal.py serve`,
+  so every harness run in between degrades to spool only. The journal survives
+  that (writes spool, reads fall back to data.db) but nothing is queryable live
+  and the spool grows until someone runs `sync`.
+
+  Install:   python3 pb_journal.py launchd install
+  Uninstall: python3 pb_journal.py launchd uninstall
+  Status:    launchctl print gui/$UID/com.simpleagentos.pocketbase
+
+  Note the binding is 127.0.0.1 on purpose. The agent_journal collection has
+  public access rules, so this must never be exposed beyond loopback.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.simpleagentos.pocketbase</string>
+
+    <!-- Foreground process. launchd owns the lifecycle, not pb_journal.py serve. -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/ctavolazzi/Code/_experiments/SimpleAgentOS/core_engine/pocketbase</string>
+        <string>serve</string>
+        <string>--http=127.0.0.1:8090</string>
+        <string>--dir</string>
+        <string>/Users/ctavolazzi/Code/_experiments/SimpleAgentOS/core_engine/pb_data</string>
+        <string>--migrationsDir</string>
+        <string>/Users/ctavolazzi/Code/_experiments/SimpleAgentOS/core_engine/pb_migrations</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/ctavolazzi/Code/_experiments/SimpleAgentOS/core_engine</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- 10s between restarts so a persistent failure cannot hot loop. -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Users/ctavolazzi/Code/_experiments/SimpleAgentOS/.self_explorer/pocketbase.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/ctavolazzi/Code/_experiments/SimpleAgentOS/.self_explorer/pocketbase.err.log</string>
+</dict>
+</plist>

@@ -258,6 +258,29 @@ def _append_to_section(path: Path, section_header: str, bullet: str) -> bool:
     return False
 
 
+def _remember(text: str, kind: str, section: str, d: str) -> None:
+    """Mirror the bullet into the OS's PocketBase journal so it's queryable later.
+
+    The markdown file stays the human-readable record; this is the index. Purely
+    additive — if pb_journal or PocketBase is unavailable the markdown write has
+    already succeeded and nothing here may change that.
+    """
+    try:
+        import pb_journal
+
+        pb_journal.journal(
+            text,
+            kind=kind,
+            source="claude_journal",
+            tags=["claude-journal", section],
+            path_ref=str(_journal_path(d)),
+            importance=0.6,
+            metadata={"section": section, "note_date": d},
+        )
+    except Exception:  # noqa: BLE001 — journaling must never break journaling
+        pass
+
+
 def add_realization(text: str, d: Optional[str] = None) -> dict:
     if d is None:
         d = _today()
@@ -265,6 +288,8 @@ def add_realization(text: str, d: Optional[str] = None) -> dict:
     ts = _hm()
     bullet = f"[{ts}] {text}"
     ok = _append_to_section(path, "## Realizations", bullet)
+    if ok:
+        _remember(text, "reflection", "realization", d)
     return {"ok": ok, "realization": text, "timestamp": ts}
 
 
@@ -275,6 +300,8 @@ def add_question(text: str, d: Optional[str] = None) -> dict:
     ts = _hm()
     bullet = f"[{ts}] {text}"
     ok = _append_to_section(path, "## Open Questions", bullet)
+    if ok:
+        _remember(text, "question", "open-question", d)
     return {"ok": ok, "question": text, "timestamp": ts}
 
 
@@ -285,6 +312,8 @@ def add_thread(text: str, d: Optional[str] = None) -> dict:
     ts = _hm()
     bullet = f"[{ts}] {text}"
     ok = _append_to_section(path, "## Threads I'm Holding", bullet)
+    if ok:
+        _remember(text, "note", "thread", d)
     return {"ok": ok, "thread": text, "timestamp": ts}
 
 
@@ -295,6 +324,8 @@ def add_interesting(text: str, d: Optional[str] = None) -> dict:
     ts = _hm()
     bullet = f"[{ts}] {text}"
     ok = _append_to_section(path, "## What I Find Interesting", bullet)
+    if ok:
+        _remember(text, "note", "interesting", d)
     return {"ok": ok, "note": text, "timestamp": ts}
 
 

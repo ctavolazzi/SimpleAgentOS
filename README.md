@@ -193,6 +193,56 @@ A: Click the **COPY** button in the top bar. It exports the full journal as plai
 
 ---
 
+## Memory: the agent journal
+
+SimpleAgentOS writes what it learns into its **own** PocketBase instance
+(`core_engine/pocketbase`, data in `core_engine/pb_data`) and can query it back.
+Markdown stays the human-readable record; this is the index.
+
+```bash
+# Start the OS's PocketBase (also applies pending migrations)
+python3 pb_journal.py serve
+
+# Write something down
+python3 pb_journal.py log "spin_up drops the hero image on cold cache" \
+    --kind finding --tags spin_up,cache --importance 0.8
+
+# Ask it back
+python3 pb_journal.py query "hero image"
+python3 pb_journal.py query --kind error --since 7d
+python3 pb_journal.py recent -n 20
+
+# Health + housekeeping
+python3 pb_journal.py doctor
+python3 pb_journal.py sync     # drain entries written while PocketBase was down
+```
+
+Kinds: `note`, `finding`, `decision`, `question`, `event`, `session`, `error`,
+`commit`, `artifact`, `reflection`.
+
+Two properties worth knowing:
+
+- **Writes can't fail your code.** If PocketBase is down the entry goes to
+  `.self_explorer/journal_spool.jsonl` and syncs later. `journal()` never raises.
+- **Reads work with the server down.** PocketBase stores records in plain
+  SQLite, so queries fall back to reading `pb_data/data.db` directly and merge
+  in anything still spooled.
+
+From Python:
+
+```python
+from pb_journal import journal, query
+
+journal("wired the CivicOS bridge", kind="event", tags=["civicos"])
+for row in query("civicos", kind="event", limit=10):
+    print(row["occurred_at"], row["title"])
+```
+
+The server binds to `127.0.0.1` and the collection's access rules are open
+(matching the rest of this PocketBase), so don't expose the port on a LAN.
+
+---
+
 ## Files
 
 | File | Purpose |
@@ -204,6 +254,8 @@ A: Click the **COPY** button in the top bar. It exports the full journal as plai
 | `tests/test_smoke.py` | Pre-flight checks: deps, files, binaries, ports |
 | `tests/test_explorer.py` | Unit tests for SelfExplorer logic |
 | `CHANGELOG.md` | Version history |
+| `pb_journal.py` | The OS's own queryable memory — PocketBase-backed journal |
+| `tests/test_pb_journal.py` | Journal durability + query tests |
 | `core_engine/` | Original SimpleAgentOS (React + PocketBase + llama.cpp) |
 | `build_os.py` | Original system builder |
 | `rebuild_AgentOS.py` | Original system rebuilder |

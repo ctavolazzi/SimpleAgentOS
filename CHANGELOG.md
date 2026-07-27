@@ -1,5 +1,84 @@
 # Changelog
 
+## [0.4.1] - 2026-07-27
+
+Three defects in the 0.4.0 journal, found by using it rather than by reading it.
+
+### Fixed
+
+- **The live tests were writing into the real journal.** `tests/test_pb_journal.py`
+  pointed at the production `agent_journal` collection, so a few runs left 15
+  `pytest-...` rows on top of the 6 entries actually worth recalling. A memory
+  you cannot trust to hold signal is not a memory.
+  - New `agent_journal_test` collection (migration `1712270100`), schema
+    identical so the same client paths are exercised. One deliberate
+    difference: `deleteRule` is `""` there, where the real journal keeps it
+    `null`. Real memory stays append only; scratch data cleans up after itself.
+  - `COLLECTION` now honors `PB_JOURNAL_COLLECTION`, and the `live` fixture
+    redirects to the scratch collection and empties it on teardown, including
+    rows a previously failed run left behind.
+  - `PB.delete()` added for that teardown. It returns `False` rather than
+    raising when the target forbids deletes, which is what the real collection
+    does.
+  - Two tests guard the fix itself: one asserts a live write does not change
+    `agent_journal`'s row count, one asserts the real collection still refuses
+    deletes. The 15 junk rows were purged.
+
+- **The spool could grow without limit.** It is an outbox, not an archive, and
+  an unbounded file sat on the write path of an API whose whole promise is that
+  it never blocks the caller. Now capped at 8 MiB / 5000 entries / 30 days
+  (`PB_JOURNAL_SPOOL_MAX_*`). Oldest go first, because an outbox that keeps
+  month-old entries and drops what just happened has it backwards.
+  - What gets dropped is counted in a `.dropped` sidecar and surfaced by
+    `stats()` and `doctor`. Silently discarded memory is a hole nobody notices;
+    a counted one is at least a known gap.
+  - The cap fires on append (guarded by a cheap `stat()`, not a full re-read)
+    so it works without anyone running a command.
+
+- **PocketBase only ran when started by hand.** Every harness call in between
+  degraded to spool-only. Added `core_engine/com.simpleagentos.pocketbase.plist`
+  and `pb_journal.py launchd install | uninstall | status`: `RunAtLoad`,
+  `KeepAlive`, 10s throttle, still bound to 127.0.0.1 because the collection
+  rules are public. `stop` now explains itself when launchd owns the process,
+  and `doctor` reports supervision as a check.
+
+## [0.4.0] — 2026-07-26
+
+### Added
+- **`pb_journal.py`** — SimpleAgentOS journals to its own PocketBase instance
+  (`core_engine/pocketbase` + `core_engine/pb_data`) and can query it back. One
+  wide `agent_journal` collection holds every remembered thing: findings,
+  decisions, questions, events, errors, reflections. Recall is "find the thing
+  that mentioned X", so `kind` + `tags` carry the structure instead of a
+  normalized schema nobody wants to join across.
+  - Writes never block the caller. If PocketBase is down the entry lands in an
+    append-only spool (`.self_explorer/journal_spool.jsonl`) and `sync` drains
+    it on reconnect. `journal()` does not raise, ever.
+  - Reads work offline too. PocketBase keeps records in plain SQLite, so when
+    the server is down the query path reads `pb_data/data.db` directly and
+    merges in un-synced spool entries. Memory stays askable either way.
+  - CLI: `serve`, `stop`, `status`, `doctor`, `log`, `query`, `recent`, `sync`.
+  - Stdlib only, bound to 127.0.0.1.
+- **`core_engine/pb_migrations/1712270000_agent_journal.js`** — the collection.
+  Applied automatically on `pb_journal.py serve`.
+- **`tests/test_pb_journal.py`** — 28 tests. The live-PocketBase ones skip when
+  the server isn't up; the durability ones run always.
+
+### Changed
+- `claude_journal.py` mirrors realizations, open questions, threads, and
+  interesting notes into `agent_journal`. The markdown file stays the
+  human-readable record; the journal is the index. Best-effort — a dead
+  PocketBase cannot fail a markdown write that already succeeded.
+- `harness_log.py` writes harness *failures* into the journal as `kind=error`.
+  Only failures: `trail_log` already holds the full op stream, and a memory the
+  OS searches should hold what's worth recalling, not every keystroke.
+
+### Fixed
+- Offline reads of `pb_data/data.db` right after PocketBase exits. A `mode=ro`
+  SQLite handle can't create the `-shm` sidecar a WAL database needs, so the
+  read silently returned nothing; it now falls back to a normal handle (SELECT
+  only). Found by stopping the server and immediately querying.
+
 ## [0.3.0] — 2026-07-25
 
 ### Changed

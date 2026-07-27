@@ -26,6 +26,13 @@ _trail = None
 _recorder = None  # section_tracker.OpRecorder singleton (or False if init failed)
 
 # Map harness_log action names → section_tracker OPERATIONS set
+# Results that mean something actually went wrong. Everything else the harness
+# reports (ok, section_created, skipped, …) is a normal outcome.
+_ERROR_RESULTS = {
+    "permission_error", "fs_error", "regex_error", "validation_error",
+    "network_error", "error", "failed", "exception",
+}
+
 _ACTION_TO_OP = {
     "write_section":      "write",
     "extract_section":    "extract",
@@ -127,6 +134,29 @@ def log_op(action, actor, target, result, content=None,
                 )
             except Exception:
                 pass  # bridge failure must not break the caller
+
+    # Additive bridge → pb_journal (the OS's queryable memory). Only genuine
+    # failures go here: trail_log already has the full op stream, and a memory
+    # the OS searches should hold what's worth recalling, not every keystroke.
+    # "not ok" is too broad a test — benign outcomes like "section_created" go
+    # through this same field and would bury the real errors.
+    if result in _ERROR_RESULTS or str(result).endswith("_error"):
+        try:
+            import pb_journal
+
+            pb_journal.journal(
+                f"{action} on {target} failed: {error or result}",
+                kind="error",
+                source="harness_log",
+                actor=actor,
+                tags=["harness", action, result],
+                path_ref=str(target),
+                importance=0.8,
+                metadata={"action": action, "result": result, "command": command,
+                          "duration_ms": duration_ms},
+            )
+        except Exception:
+            pass  # never let the memory layer break the harness
 
     return trail_result
 
