@@ -1217,6 +1217,36 @@ def main():
         ok, status = _append_spin_up_log_entry(phase2)
         print(f"  {'✓' if ok else '·'} session log: {status}")
 
+    # Phase 8: Personal dashboard regeneration.
+    #
+    # ~/Code/dashboard regenerates a static index.html from its probe data.
+    # It rides this ritual rather than owning a cron, and it runs LAST because
+    # its F4 panel reads today's note and plan: run it before phases 3 and 5
+    # and it would render "no plan yet today" every morning.
+    #
+    # Everything is guarded. A missing repo, a crashing dashboard, or a hang
+    # must never take spin-up down with it. It never opens a browser either;
+    # that is what the `dash` alias is for.
+    if not args.dry_run:
+        print("\n📊 Phase 8: Dashboard refresh...")
+        dashboard_py = Path.home() / "Code" / "dashboard" / "dashboard.py"
+        if not dashboard_py.exists():
+            print(f"  · dashboard skipped: {dashboard_py} not found")
+        else:
+            try:
+                import subprocess
+                proc = subprocess.run(
+                    [sys.executable, str(dashboard_py), "all", "--fast"],
+                    capture_output=True, text=True, timeout=120)
+                if proc.returncode == 0:
+                    print("  ✓ dashboard: index.html regenerated")
+                else:
+                    tail = (proc.stderr or proc.stdout).strip().splitlines()
+                    print(f"  · dashboard rc={proc.returncode}: "
+                          f"{tail[-1] if tail else 'no output'}")
+            except Exception as e:   # noqa: BLE001 - never break spin-up
+                print(f"  · dashboard skipped ({type(e).__name__}): {e}")
+
     # Report
     _fails = [k for k, v in phase2.items() if not v.get("ok", True)]
     if _fails:

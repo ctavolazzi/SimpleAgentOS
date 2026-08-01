@@ -729,6 +729,27 @@ def _wrap(args, date_str: str) -> int:
          date=date_str,
     )
 
+    # Personal dashboard regeneration. Same guarded call as spin-up's phase 8:
+    # ~/Code/dashboard rides this ritual instead of owning a cron, and a
+    # dashboard failure must never take wrap-up down. Never opens a browser.
+    print("\n📊 Dashboard refresh...")
+    dashboard_py = Path.home() / "Code" / "dashboard" / "dashboard.py"
+    if not dashboard_py.exists():
+        print(f"  · dashboard skipped: {dashboard_py} not found")
+    else:
+        try:
+            proc = subprocess.run(
+                [sys.executable, str(dashboard_py), "all", "--fast"],
+                capture_output=True, text=True, timeout=120)
+            if proc.returncode == 0:
+                print("  ✓ dashboard: index.html regenerated")
+            else:
+                tail = (proc.stderr or proc.stdout).strip().splitlines()
+                print(f"  · dashboard rc={proc.returncode}: "
+                      f"{tail[-1] if tail else 'no output'}")
+        except Exception as e:   # noqa: BLE001 - never break wrap-up
+            print(f"  · dashboard skipped ({type(e).__name__}): {e}")
+
     # Summary
     print("\n" + "=" * 60)
     print(f"✅  Wrap-up complete at {datetime.now().strftime('%H:%M:%S')}")
