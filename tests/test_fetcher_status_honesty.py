@@ -14,7 +14,11 @@ Run:
     python3 -m pytest tests/test_fetcher_status_honesty.py -v
 """
 
+import json
+import os
+import shutil
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -102,6 +106,73 @@ class TestArxivStatus(unittest.TestCase):
             with mock.patch.object(spin_up, "_write_cache", lambda *a, **kw: None):
                 _, status = spin_up._fetch_arxiv(force=True)
         self.assertEqual(status, "ok")
+
+
+class TestFaultInjectionCannotPoisonCache(unittest.TestCase):
+    """A test that stubs a feed dead must not persist its fake.
+
+    On 2026-08-02 a negative control stubbed the arXiv feed empty and called
+    `_fetch_arxiv(force=True)`. `force` skips the cache READ but not the cache
+    WRITE, so the stubbed empty digest landed in ~/.cache/daily-harness and the
+    next real spin-up would have served it as though it were a measurement. It
+    was caught and repaired that day, but only because someone thought to look.
+    """
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self._patch = mock.patch.object(spin_up, "CACHE_DIR", self.tmp)
+        self._patch.start()
+
+    def tearDown(self):
+        self._patch.stop()
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def test_write_cache_honours_the_redirect(self):
+        spin_up._write_cache("probe", {"value": 1})
+        written = list(self.tmp.glob("probe-*.json"))
+        self.assertEqual(len(written), 1,
+                         "cache write did not land in the redirected dir")
+        self.assertEqual(json.loads(written[0].read_text())["value"], 1)
+
+    def test_stubbed_dead_feed_writes_only_to_the_redirected_dir(self):
+        """The exact 08-02 sequence, now sealed off from the real cache."""
+        import arxiv
+
+        def dead(*a, **kw):
+            return {"categories": [], "fetched_at": "x",
+                    "date_range": ("20260101", "20260102"), "papers": []}
+
+        with mock.patch.object(arxiv, "fetch", side_effect=dead):
+            _, status = spin_up._fetch_arxiv(force=True)
+
+        self.assertTrue(status.startswith("suspicious"), status)
+        poisoned = list(self.tmp.glob("arxiv-dual-*.json"))
+        self.assertEqual(len(poisoned), 1,
+                         "the fake should be written, but only into the tmpdir")
+        payload = json.loads(poisoned[0].read_text())
+        self.assertTrue(payload["suspicious_empty"])
+
+    def test_real_cache_dir_is_not_the_test_dir(self):
+        """Guard the guard: if the patch stopped working this test fails first."""
+        self._patch.stop()
+        try:
+            self.assertNotEqual(spin_up.CACHE_DIR, self.tmp)
+            self.assertIn("daily-harness", str(spin_up.CACHE_DIR))
+        finally:
+            self._patch.start()
+
+    def test_cache_dir_is_env_overridable(self):
+        """SPINUP_CACHE_DIR is read at import, so prove it via a fresh import."""
+        import importlib
+        import subprocess
+        proc = subprocess.run(
+            [sys.executable, "-c",
+             "import spin_up; print(spin_up.CACHE_DIR)"],
+            cwd=ROOT, capture_output=True, text=True,
+            env={**os.environ, "SPINUP_CACHE_DIR": str(self.tmp)},
+        )
+        self.assertEqual(proc.stdout.strip(), str(self.tmp),
+                         f"env override ignored; stderr={proc.stderr[-400:]}")
 
 
 if __name__ == "__main__":

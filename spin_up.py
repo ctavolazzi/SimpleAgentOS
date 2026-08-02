@@ -12,6 +12,7 @@ Returns exit code 0 on success, nonzero on unrecovered failures.
 """
 
 import json
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -63,7 +64,14 @@ def _tap_status(name: str, status: str):
 
 # ── Config ─────────────────────────────────────────────────────────────────
 
-CACHE_DIR = Path.home() / ".cache" / "daily-harness"
+# Overridable so a test that injects a fault cannot write its fake into the real
+# cache. On 2026-08-02 a negative control stubbed the arXiv feed dead and called
+# _fetch_arxiv(force=True); force skips the read but NOT the write, so the empty
+# digest was persisted to ~/.cache and the next real spin-up would have served it.
+# Caught and repaired that day, but only because someone looked. Point
+# SPINUP_CACHE_DIR at a tmpdir and fault injection stays sealed off.
+CACHE_DIR = Path(os.environ.get("SPINUP_CACHE_DIR")
+                 or Path.home() / ".cache" / "daily-harness")
 RUNS_DIR = Path.home() / ".spin_up" / "runs"
 VAULT_DIR = Path.home() / "Documents" / "Personal-Remote-Vault"
 CODE_ROOT = Path.home() / "Code"
