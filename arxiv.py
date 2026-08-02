@@ -104,7 +104,11 @@ def fetch(categories: Optional[List[str]] = None, days: int = 1,
             "sortBy": "submittedDate",
             "sortOrder": "descending",
         }
-        url = "http://export.arxiv.org/api/query?" + urllib.parse.urlencode(params)
+        # https, not http: export.arxiv.org now answers plain http with a 301.
+        # urllib follows it, so this worked, but any caller that does not (curl
+        # without -L, for one) silently gets a zero-byte body and reads it as
+        # "no papers today" rather than as a redirect.
+        url = "https://export.arxiv.org/api/query?" + urllib.parse.urlencode(params)
         req = urllib.request.Request(url, headers={"User-Agent": "daily-note-harness/1.0"})
 
         try:
@@ -172,32 +176,66 @@ def score_paper(paper: dict, keywords: dict) -> tuple:
     return score, matches
 
 
+# A 2-day window lands entirely inside arXiv's dead zone often enough to matter.
+# The API's newest indexed submission trails the wall clock by 2 to 3 days across
+# a weekend: measured 2026-08-02 (Sunday), the newest cs.AI paper was 2026-07-30.
+# So [today-2, today] returned nothing while [today-5, today] returned 30 per pane.
+# Three prior "zero papers" days in the daily note (07-25 Sat, 07-27 Mon, 07-31 Fri)
+# were all weekend-adjacent, which is the same fingerprint.
+WIDEN_FACTOR = 3
+MAX_WIDEN_DAYS = 7
+
+
 def fetch_dual_pane(days: int = 2, top_n: int = DEFAULT_TOP_N,
                     per_cat: int = 30, timeout: int = 15) -> dict:
     """Fetch two panes: physics + AI/agents, scored by keyword relevance.
 
+    Widens the window once and retries if BOTH panes come back empty, so a
+    weekend gap does not render as an outage. The result records which window
+    actually produced the papers.
+
     Args:
-        days: How many days back (2 default — covers weekends when no submits)
+        days: How many days back (2 default, widened automatically if empty)
         top_n: Top N per pane after scoring
         per_cat: Max results per category before scoring
     """
-    phys_raw = fetch(PHYSICS_CATEGORIES, days=days, max_results=per_cat, timeout=timeout)
-    ai_raw = fetch(AI_CATEGORIES, days=days, max_results=per_cat, timeout=timeout)
+    def _pull(window: int):
+        phys = fetch(PHYSICS_CATEGORIES, days=window, max_results=per_cat, timeout=timeout)
+        ai = fetch(AI_CATEGORIES, days=window, max_results=per_cat, timeout=timeout)
+        for p in phys["papers"]:
+            p["score"], p["matches"] = score_paper(p, PHYSICS_KEYWORDS)
+        for p in ai["papers"]:
+            p["score"], p["matches"] = score_paper(p, AI_KEYWORDS)
+        return phys, ai
 
-    for p in phys_raw["papers"]:
-        p["score"], p["matches"] = score_paper(p, PHYSICS_KEYWORDS)
-    for p in ai_raw["papers"]:
-        p["score"], p["matches"] = score_paper(p, AI_KEYWORDS)
+    days_effective = days
+    widened = False
+    phys_raw, ai_raw = _pull(days_effective)
+
+    if not phys_raw["papers"] and not ai_raw["papers"]:
+        wider = min(days * WIDEN_FACTOR, MAX_WIDEN_DAYS)
+        if wider > days_effective:
+            days_effective = wider
+            widened = True
+            phys_raw, ai_raw = _pull(days_effective)
 
     phys_sorted = sorted(phys_raw["papers"],
                          key=lambda x: (x["score"], x["published"]), reverse=True)
     ai_sorted = sorted(ai_raw["papers"],
                        key=lambda x: (x["score"], x["published"]), reverse=True)
 
+    total = len(phys_raw["papers"]) + len(ai_raw["papers"])
+
     return {
         "fetched_at": datetime.now().isoformat(timespec="seconds"),
         "date_range": phys_raw["date_range"],
-        "days": days,
+        "days": days_effective,
+        "days_requested": days,
+        "window_widened": widened,
+        # True only when even the widened window found nothing. That is not a
+        # normal weekend and callers should surface it rather than print
+        # "no papers" as though it were a finding.
+        "suspicious_empty": total == 0,
         "physics": {
             "categories": PHYSICS_CATEGORIES,
             "papers": phys_sorted[:top_n],
@@ -247,9 +285,19 @@ def format_dual_pane_md(digest: dict) -> str:
                      f"over last {digest.get('days', 1)}d.*")
         lines.append("")
 
+    window_note = ""
+    if digest.get("window_widened"):
+        window_note = (f", widened from {digest.get('days_requested')}d to "
+                       f"{digest.get('days')}d because the first pass was empty")
+    if digest.get("suspicious_empty"):
+        window_note = (f", and {digest.get('days')}d still returned nothing. "
+                       f"arXiv is normally 2-3d behind over a weekend, so a zero "
+                       f"here is worth checking rather than believing")
+
     lines.append(f"*Scored from {digest['physics']['total_fetched']} physics "
                  f"+ {digest['ai']['total_fetched']} AI papers "
-                 f"({digest['date_range'][0]}→{digest['date_range'][1]}) "
+                 f"({digest['date_range'][0]}→{digest['date_range'][1]}"
+                 f"{window_note}) "
                  f"— pulled {digest['fetched_at']}*")
     return "\n".join(lines)
 

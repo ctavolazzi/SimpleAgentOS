@@ -180,6 +180,15 @@ def _fetch_arxiv(force: bool = False) -> Tuple[dict, str]:
     try:
         a = arxiv.fetch_dual_pane(days=2, top_n=arxiv.DEFAULT_TOP_N)
         _write_cache("arxiv-dual", a)
+        # A zero that survived the widened retry is not a normal weekend. Say so
+        # here: reporting "ok" on an empty digest is what let three zero-paper
+        # days pass unexamined, because the only other signal was the note
+        # itself saying "No papers", which reads like a finding rather than a
+        # fault.
+        if a.get("suspicious_empty"):
+            return a, f"suspicious (0 papers even at {a.get('days')}d — check the feed)"
+        if a.get("window_widened"):
+            return a, f"ok (widened to {a.get('days')}d)"
         return a, "ok"
     except Exception as e:
         cached = _read_cache("arxiv-dual", float('inf'))
