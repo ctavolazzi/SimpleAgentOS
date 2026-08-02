@@ -163,7 +163,13 @@ def _fetch_news(force: bool = False) -> Tuple[dict, str]:
     try:
         n = local_news.fetch("Chico California", limit=3)
         _write_cache("news", n)
-        return n, "ok"
+        # Report the count rather than a bare "ok". Same lesson as the arXiv
+        # window: a fetcher that says "ok" while returning an empty collection
+        # makes the note's "no stories" line indistinguishable from an outage.
+        count = n.get("count", len(n.get("stories", [])))
+        if not count:
+            return n, "suspicious (0 stories — check the feed)"
+        return n, f"ok ({count} stories)"
     except Exception as e:
         cached = _read_cache("news", float('inf'))
         if cached:
@@ -224,7 +230,11 @@ def _fetch_git_scan() -> Tuple[list, str]:
     """Scan git repos. No caching — always fresh."""
     try:
         repos = git_scanner.scan_workspace(CODE_ROOT)
-        return repos, "ok"
+        # Zero repos under ~/Code is never a real reading, it means the scan
+        # found nothing to walk. Say so instead of reporting "ok".
+        if not repos:
+            return repos, f"suspicious (0 repos under {CODE_ROOT})"
+        return repos, f"ok ({len(repos)} repos)"
     except Exception as e:
         return [], f"failed ({type(e).__name__}): {e}"
 
