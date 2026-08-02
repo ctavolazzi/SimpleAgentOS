@@ -227,35 +227,59 @@ def _link_to_daily_note(d: str) -> bool:
         return False
 
 
+_PLACEHOLDER_PATTERNS = [
+    r"<!-- One bullet per realization -->",
+    r"<!-- One bullet per question -->",
+    r"<!-- Freeform\. What actually caught your attention\? -->",
+    r"<!-- What should carry forward\? -->",
+    r"<!-- Fill in during/after session -->",
+]
+
+
 def _append_to_section(path: Path, section_header: str, bullet: str) -> bool:
-    """Append a bullet under a section header. Returns True on success."""
+    """Append a bullet under a section header. Returns True on success.
+
+    Handles three cases the original could not, each of which returned False
+    silently while the CLI printed a timestamp that looked like success:
+
+    1. The section is LAST in the file. The original inserted before the next
+       `---` or `## `, so with nothing following it there was no insertion point
+       and the section was unwritable forever.
+    2. The section is absent entirely. Two writers disagreed on the template:
+       spin_up's scaffold wrote only `## Session Log` and `## Notes`, while every
+       add-* verb here targets `## Realizations`, `## Open Questions`,
+       `## Threads I'm Holding` and `## What I Find Interesting`. Since
+       create_entry is idempotent it never repaired the headings, so every add
+       against a spin_up-created journal failed. Create the section instead.
+    3. Placeholder removal shifted the offset. The original computed insert_pos
+       against the pre-substitution string and then sliced the post-substitution
+       string, so any placeholder earlier in the file moved the split point by
+       its own length.
+    """
     if not path.exists():
         return False
     text = path.read_text(encoding="utf-8")
-    placeholder_patterns = [
-        r"<!-- One bullet per realization -->",
-        r"<!-- One bullet per question -->",
-        r"<!-- Freeform\. What actually caught your attention\? -->",
-        r"<!-- What should carry forward\? -->",
-        r"<!-- Fill in during/after session -->",
-    ]
-    if section_header in text:
-        # Find the section and insert after its callout block or heading
-        # Strategy: find the header, then find the callout close or next ##
-        idx = text.find(section_header)
-        # Find the blank line after the callout (> lines end)
-        section_text = text[idx:]
-        # Insert bullet before the next --- or ##
-        next_divider = re.search(r"\n---\n|\n## ", section_text)
-        if next_divider:
-            insert_pos = idx + next_divider.start()
-            # Remove placeholder if present
-            for pat in placeholder_patterns:
-                text = re.sub(pat, "", text)
-            text = text[:insert_pos].rstrip("\n") + f"\n- {bullet}\n" + text[insert_pos:]
-            atomic_io.vault_write(path, text)
-            return True
-    return False
+
+    # Strip placeholders FIRST so every offset below refers to the final string.
+    for pat in _PLACEHOLDER_PATTERNS:
+        text = re.sub(pat, "", text)
+
+    idx = text.find(section_header)
+    if idx == -1:
+        # Case 2: create the section rather than failing.
+        text = text.rstrip("\n") + f"\n\n---\n\n{section_header}\n\n- {bullet}\n"
+        atomic_io.vault_write(path, text)
+        return True
+
+    after_header = idx + len(section_header)
+    section_text = text[after_header:]
+    next_divider = re.search(r"\n---\n|\n## ", section_text)
+    # Case 1: EOF is a valid boundary, not a failure.
+    end = after_header + (next_divider.start() if next_divider else len(section_text))
+
+    text = text[:end].rstrip("\n") + f"\n- {bullet}\n" + text[end:]
+    atomic_io.vault_write(path, text)
+    return True
 
 
 def _remember(text: str, kind: str, section: str, d: str) -> None:
@@ -358,24 +382,32 @@ def main():
 
     args = parser.parse_args()
 
+    def emit(result: dict) -> None:
+        """Print the result and make a failed write cost an exit code.
+
+        These verbs used to exit 0 whatever happened. On 2026-07-28 every add
+        was returning {"ok": false} against a journal written from the other
+        template, and the failure went unnoticed for a session because the
+        output was piped through `tail -2`, which cropped the `ok` field and
+        left a timestamp on screen that read like success. A non-zero exit
+        survives cropping.
+        """
+        print(json.dumps(result, indent=2))
+        if result.get("ok") is False:
+            sys.exit(1)
+
     if args.cmd == "create":
-        result = create_entry()
-        print(json.dumps(result, indent=2))
+        emit(create_entry())
     elif args.cmd == "add-realization":
-        result = add_realization(args.text, args.date)
-        print(json.dumps(result, indent=2))
+        emit(add_realization(args.text, args.date))
     elif args.cmd == "add-question":
-        result = add_question(args.text, args.date)
-        print(json.dumps(result, indent=2))
+        emit(add_question(args.text, args.date))
     elif args.cmd == "add-thread":
-        result = add_thread(args.text, args.date)
-        print(json.dumps(result, indent=2))
+        emit(add_thread(args.text, args.date))
     elif args.cmd == "add-interesting":
-        result = add_interesting(args.text, args.date)
-        print(json.dumps(result, indent=2))
+        emit(add_interesting(args.text, args.date))
     elif args.cmd == "status":
-        result = get_entry(args.date)
-        print(json.dumps(result, indent=2))
+        emit(get_entry(args.date))
     else:
         parser.print_help()
 

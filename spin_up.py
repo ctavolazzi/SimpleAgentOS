@@ -625,6 +625,7 @@ def _scaffold_journal(date_str: str, today_label: str, dt_ctx: dict,
     if journal_path.exists():
         return True, "skipped (already exists)"
     journal_dir.mkdir(parents=True, exist_ok=True)
+
     ts = datetime.now().strftime("%H:%M UTC")
     moon = dt_ctx.get("moon_phase", "")
     week = dt_ctx.get("week_number", "")
@@ -637,28 +638,25 @@ def _scaffold_journal(date_str: str, today_label: str, dt_ctx: dict,
         if moon:
             parts.append(moon)
         context_line = f"\n*{' · '.join(parts)}*"
-    content = f"""---
-type: claude_journal
-date: {date_str}
-parent: "[[Daily Notes/{date_str}]]"
-tags:
-  - journal
-  - daily
----
 
-# Claude's Journal — {today_label}
+    # Delegate to claude_journal rather than writing a second template here.
+    # This function used to emit its own file with only "## Session Log" and
+    # "## Notes", while every claude_journal add-* verb writes to "## Realizations",
+    # "## Open Questions", "## Threads I'm Holding" and "## What I Find
+    # Interesting". Because create_entry is idempotent it saw the file already
+    # existed and never repaired the headings, so on any day spin_up ran first
+    # (which is every day) every journal write silently failed. One template,
+    # one writer.
+    try:
+        import claude_journal
 
-## Session Log
-
-**Session start:** {ts}{context_line}
-
----
-
-## Notes
-
-"""
-    atomic_io.vault_write(journal_path, content)
-    return True, "created"
+        result = claude_journal.create_entry(
+            d=date_str,
+            session_recap=f"**Session start:** {ts}{context_line}",
+        )
+        return True, "created" if result.get("created") else result.get("status", "exists")
+    except Exception as e:  # noqa: BLE001 — scaffolding must not abort spin-up
+        return False, f"failed ({type(e).__name__}): {e}"
 
 
 def _scaffold_hub(date_str: str, today_label: str, dt_ctx: dict,
