@@ -54,7 +54,20 @@ from typing import Any, Optional
 _NEWEST_HAIKU = "claude-haiku-4-5"
 DEFAULT_MODEL = os.environ.get("HAIKU_MINION_MODEL", _NEWEST_HAIKU)
 
-DEFAULT_TIMEOUT = 30
+# 30s used to be the default and it sat INSIDE the real latency distribution,
+# so calls failed on a coin flip rather than on anything being wrong. Measured
+# 2026-08-05 over `claude -p` with claude-haiku-4-5:
+#   trivial prompt ("say pong"):        5.6 / 6.1 / 6.2 s
+#   generative prompt (a 25-word quip): 14 / 15 / 16 / 16 / 17 / 18 / 22 / 23 /
+#                                       25 / 27 / 29 / 31 / 40 s, plus one
+#                                       outright timeout at the old 30s cap
+# So the tail runs past 40s and roughly a third of real calls exceeded 30s —
+# the section shipped a placeholder on a coin flip, not on a fault. The cost is
+# a cold `claude -p` start plus real generation; MCP loading was ruled out
+# (--strict-mcp-config with an empty server set made no difference).
+# 90s is ~2x the observed max. Callers that would rather fail fast than wait
+# should pass their own timeout.
+DEFAULT_TIMEOUT = 90
 CACHE_DIR = Path.home() / ".cache" / "haiku-minion"
 
 log = logging.getLogger("haiku_minion")
