@@ -561,19 +561,91 @@ def check_environment() -> List[Check]:
         data={"size_gb": gb, "raw": size},
     ))
 
-    # E2: ~/Code git dirty
-    rc, sout, _ = run(["git", "-C", str(CODE_ROOT), "status", "-s"])
-    if rc == 0:
-        dirty = len([l for l in sout.split("\n") if l.strip()])
-        st = PASS if dirty < 5 else WARN
-        out.append(Check(
-            id="E2", category="env", name="~/Code git dirty",
-            status=st, message=f"{dirty} changed paths",
-            data={"dirty_count": dirty},
-        ))
+    # E2/E6/E7 share ONE sweep of every discovered repo. `git status
+    # --porcelain=v2 --branch` answers dirty AND ahead-of-upstream in a single
+    # process per repo; 93 repos costs ~1s at 8 workers.
+    #
+    # E2 used to run `git status -s` against the ~/Code ROOT only and report
+    # its line count as "~/Code git dirty" — a number that described one
+    # directory while reading like it described the workspace. On 2026-08-05 it
+    # said "16 changed paths" while the workspace actually held 361 across 38
+    # repos.
+    statuses = []
+    sweep_err = None
+    try:
+        if str(HERE) not in sys.path:
+            sys.path.insert(0, str(HERE))
+        import harness_lib
+        statuses = harness_lib.scan_repo_statuses(workspace=CODE_ROOT)
+    except Exception as e:
+        sweep_err = f"{type(e).__name__}: {e}"
+
+    if sweep_err or not statuses:
+        for cid, nm in (("E2", "~/Code working trees"),
+                        ("E6", "Unpushed commits"),
+                        ("E7", "Repos with no remote")):
+            out.append(Check(id=cid, category="env", name=nm, status=SKIP,
+                             message=sweep_err or "no repos discovered"))
     else:
-        out.append(Check(id="E2", category="env", name="~/Code git dirty",
-                         status=SKIP, message="git failed"))
+        scanned = len(statuses)
+        broken = [s for s in statuses if s["error"]]
+        dirty_repos = [s for s in statuses if s["dirty"]]
+        dirty_paths = sum(s["dirty"] for s in dirty_repos)
+        worst = sorted(dirty_repos, key=lambda s: s["dirty"], reverse=True)[:10]
+
+        # E2 is informational on purpose. An active workspace is dirty as its
+        # resting state (38/93 repos, median 4 paths, on a normal day), so any
+        # aggregate threshold here would fire every single morning — and a
+        # check that always warns stops being read. The actionable signal is
+        # E6: work that exists nowhere but this disk.
+        out.append(Check(
+            id="E2", category="env", name="~/Code working trees",
+            status=PASS,
+            message=f"{dirty_paths} uncommitted paths across "
+                    f"{len(dirty_repos)}/{scanned} repos",
+            data={
+                "repos_scanned": scanned,
+                "dirty_repos": len(dirty_repos),
+                "dirty_paths": dirty_paths,
+                "worst": [{"name": s["name"], "dirty": s["dirty"]} for s in worst],
+                "unreadable": [s["name"] for s in broken],
+            },
+        ))
+
+        # E6: commits that exist only on this machine. This is the check that
+        # was missing entirely. On 2026-08-05 four commits sat unpushed in the
+        # harness's own repo — including the fixes for two items still showing
+        # as open on that day's plan — and a full 30-check preflight said
+        # nothing about it.
+        ahead = harness_lib.unpushed(statuses)
+        total_ahead = sum(s["ahead"] for s in ahead)
+        out.append(Check(
+            id="E6", category="env", name="Unpushed commits",
+            status=WARN if ahead else PASS,
+            message=(f"{total_ahead} commit(s) unpushed in {len(ahead)} repo(s): "
+                     + ", ".join(f"{s['name']}+{s['ahead']}" for s in ahead[:5])
+                     if ahead else "all tracked branches pushed"),
+            action="git push" if ahead else None,
+            data={"total": total_ahead,
+                  "repos": [{"name": s["name"], "ahead": s["ahead"],
+                             "branch": s["branch"], "upstream": s["upstream"]}
+                            for s in ahead]},
+        ))
+
+        # E7: committed work with nowhere to go. Not a WARN — having no remote
+        # is a deliberate state for a scratch project, and nagging daily would
+        # bury E6. Listed so it stays visible. Empty `git init` scaffolds are
+        # excluded; they hold no work.
+        orphan = harness_lib.no_upstream(statuses)
+        out.append(Check(
+            id="E7", category="env", name="Repos with no remote",
+            status=PASS,
+            message=(f"{len(orphan)} repo(s) with commits but no upstream: "
+                     + ", ".join(s["name"] for s in orphan[:5])
+                     if orphan else "every repo with commits has an upstream"),
+            data={"repos": [{"name": s["name"], "dirty": s["dirty"]}
+                            for s in orphan]},
+        ))
 
     # E3: branch
     rc, sout, _ = run(["git", "-C", str(CODE_ROOT), "rev-parse", "--abbrev-ref", "HEAD"])
