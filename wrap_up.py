@@ -109,22 +109,15 @@ def _log(phase: str, msg: str, changes: list = None, files: list = None,
 # ── Repo discovery ───────────────────────────────────────────────────────────
 
 def _discover_repos() -> list:
-    """Find git repos in ~/Code (root), ~/Code/*, and ~/Code/active/*."""
-    repos = []
-    # Include workspace root if it's a git repo
-    if (WORKSPACE / ".git").exists():
-        repos.append(WORKSPACE)
-    # Scan top-level subdirs
-    for p in WORKSPACE.iterdir():
-        if p.is_dir() and (p / ".git").exists() and p != (WORKSPACE / "active"):
-            repos.append(p)
-    # Scan active/ subdirs
-    active = WORKSPACE / "active"
-    if active.exists():
-        for p in active.iterdir():
-            if p.is_dir() and (p / ".git").exists():
-                repos.append(p)
-    return repos
+    """Find git repos under ~/Code. Delegates to the canonical walker.
+
+    This was its own two-level scan (root + ~/Code/* + ~/Code/active/*), which
+    could not see ~/Code/_experiments/SimpleAgentOS. Since wrap_up writes the
+    authoritative end-of-day commits_today tally, that blind spot meant a day
+    spent working on the harness itself tallied as zero commits.
+    """
+    import harness_lib
+    return harness_lib.discover_repos(WORKSPACE)
 
 
 # ── Phase 1: Gather ──────────────────────────────────────────────────────────

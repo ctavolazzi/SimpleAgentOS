@@ -86,26 +86,17 @@ def scan_single_repo(repo_path: Path) -> dict:
 def scan_workspace(workspace_dir: Optional[Path] = None) -> list[dict]:
     """
     Scan all git repos in the workspace.
-    Checks top-level dirs and active/ subdirs.
+
+    Delegates discovery to harness_lib so this agrees with wrap_up's tally and
+    preflight's count. It used to do its own top-level + active/* pass, which
+    both missed nested repos (the harness's own ~/Code/_experiments/SimpleAgentOS
+    among them) and reported the accidental ~/Code/active git init as a repo.
     """
+    import harness_lib
+
     workspace = workspace_dir or WORKSPACE_DIR
-    results = []
-    seen = set()
-
-    # Top-level repos
-    for child in sorted(workspace.iterdir()):
-        if child.is_dir() and (child / ".git").exists():
-            results.append(scan_single_repo(child))
-            seen.add(child.name)
-
-    # active/ subdirectory repos
-    active_dir = workspace / "active"
-    if active_dir.is_dir():
-        for child in sorted(active_dir.iterdir()):
-            if child.is_dir() and (child / ".git").exists():
-                results.append(scan_single_repo(child))
-
-    return results
+    repos = sorted(harness_lib.discover_repos(workspace))
+    return [scan_single_repo(r) for r in repos]
 
 
 def format_report_md(results: list[dict]) -> str:

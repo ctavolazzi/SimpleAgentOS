@@ -45,6 +45,7 @@ _HERE = Path(__file__).parent
 sys.path.insert(0, str(_HERE))
 
 import daily_note
+import harness_lib
 
 # Word counting is additive: if the modules are missing or the vault is
 # unreachable, the git roll-up still runs. It is never allowed to be the
@@ -66,15 +67,10 @@ DEFAULT_ROOTS = ["~/Code", "~/code"]
 # is the most stable handle. Override with --author.
 DEFAULT_AUTHOR = "ctavolazzi"
 
-# Never descend into these while hunting for repos.
-SKIP_DIRS = {
-    "node_modules", ".venv", "venv", "env", ".env", "dist", "build",
-    ".next", ".nuxt", ".cache", "__pycache__", ".mypy_cache", ".pytest_cache",
-    "vendor", "target", ".gradle", ".svelte-kit", "coverage",
-    "test-projects", "test-fixtures",  # throwaway repo fixtures, not real work
-}
-
-MAX_DEPTH = 4  # relative to each root
+# Re-exported from harness_lib so there is one skip list, not two that drift.
+# Kept as module attributes because external callers reference them by name.
+SKIP_DIRS = harness_lib.SKIP_DIRS
+MAX_DEPTH = harness_lib.MAX_DEPTH
 
 
 def _git(repo, *args, timeout=15):
@@ -90,40 +86,30 @@ def _git(repo, *args, timeout=15):
 
 
 def find_repos(roots):
-    """Walk roots and yield every git repo dir, pruning heavy/vendored subtrees.
+    """Walk roots and return every git repo dir, pruning vendored subtrees.
 
-    Descends past a found repo so nested independent repos are still caught,
-    but never walks into node_modules/.venv/etc.
+    Delegates to harness_lib.walk_repos, which is the single implementation
+    for the harness. This function used to carry its own copy; keeping three
+    walkers in sync failed in the obvious way, so the other two now defer.
+
+    Still returns realpath STRINGS (not Path) — callers pass these straight to
+    `git -C`.
     """
-    seen = set()       # repo identities as (st_dev, st_ino)
-    root_seen = set()  # dedup roots the same way (~/Code == ~/code on macOS)
+    seen = set()   # (st_dev, st_ino) — collapses ~/Code vs ~/code on macOS
     repos = []
     for root in roots:
         base = os.path.realpath(os.path.expanduser(root))
         if not os.path.isdir(base):
             continue
-        try:
-            bkey = os.stat(base)
-            bkey = (bkey.st_dev, bkey.st_ino)
-        except OSError:
-            continue
-        if bkey in root_seen:
-            continue
-        root_seen.add(bkey)
-        for dirpath, dirnames, _files in os.walk(base):
-            depth = dirpath[len(base):].count(os.sep)
-            if depth >= MAX_DEPTH:
-                dirnames[:] = []
-            dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
-            if os.path.isdir(os.path.join(dirpath, ".git")):
-                try:
-                    st = os.stat(dirpath)
-                except OSError:
-                    continue
-                key = (st.st_dev, st.st_ino)
-                if key not in seen:
-                    seen.add(key)
-                    repos.append(os.path.realpath(dirpath))
+        for repo in harness_lib.walk_repos(base):
+            try:
+                st = repo.stat()
+            except OSError:
+                continue
+            key = (st.st_dev, st.st_ino)
+            if key not in seen:
+                seen.add(key)
+                repos.append(str(repo))
     return repos
 
 

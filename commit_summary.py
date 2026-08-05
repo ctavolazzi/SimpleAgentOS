@@ -151,12 +151,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.test:
-        workspace = Path.home() / "Code"
-        paths = [p for p in workspace.iterdir() if (p / ".git").exists()]
-        active = workspace / "active"
-        if active.exists():
-            paths += [p for p in active.iterdir() if (p / ".git").exists()]
-        summary = summarize_today(paths)
+        import harness_lib
+        summary = summarize_today(harness_lib.discover_repos())
         if args.as_json:
             print(json.dumps(summary, indent=2))
         else:
