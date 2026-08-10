@@ -29,7 +29,13 @@ WE_DIR = Path(
     or Path.home()
     / "Documents/Personal-Remote-Vault/_work_efforts_/10-19_development/10_core"
 )
-WE_PREFIX_RE = re.compile(r"^(\d{2})\.(\d{2})_\d{8}_.+\.md$")
+# The minor group is deliberately unbounded. It was `\d{2}` until 2026-08-08,
+# which meant `10.102_20260808_x.md` did not match AT ALL — the group took "10"
+# and then found "2" where it wanted "_". Every effort numbered 100 or above was
+# invisible to the scanner, so allocation reset to 10.100 on every single run and
+# seven separate efforts ended up sharing 10.102. A bounded counter is a wall you
+# hit silently; `{2,}` has no such wall at 1000 either.
+WE_PREFIX_RE = re.compile(r"^(\d{2})\.(\d{2,})_\d{8}_.+\.md$")
 
 
 class WEResult(TypedDict):
@@ -85,22 +91,67 @@ def _source_hash(task: str) -> str:
     return hashlib.sha256(normalized.encode()).hexdigest()[:12]
 
 
-def next_we_number(dir_: Path = WE_DIR) -> str:
-    """Scan dir for highest NN.MM prefix, return next as '10.NN'."""
+def used_we_minors(dir_: Path = WE_DIR, major: int = 10) -> set:
+    """Every minor number already on disk under `major`. The allocator's floor."""
     if not dir_.exists():
-        dir_.mkdir(parents=True, exist_ok=True)
-        return "10.01"
-    max_minor = 0
+        return set()
+    minors = set()
     for p in dir_.iterdir():
         if not p.is_file():
             continue
         m = WE_PREFIX_RE.match(p.name)
-        if not m:
+        if m and int(m.group(1)) == major:
+            minors.add(int(m.group(2)))
+    return minors
+
+
+def allocate_we_numbers(count: int, dir_: Path = WE_DIR) -> list:
+    """
+    Hand out `count` work-effort IDs that are not already taken on disk.
+
+    The batch creators used to compute a single `start_num` and then add the loop
+    index, so any ID already sitting inside that span was written straight
+    through instead of skipped. Allocation now walks up from the current maximum
+    and steps over anything taken, which makes a half-finished previous run
+    unable to be overwritten by the next one.
+    """
+    if count <= 0:
+        return []
+    used = used_we_minors(dir_)
+    numbers, candidate = [], (max(used) + 1 if used else 1)
+    while len(numbers) < count:
+        if candidate not in used:
+            numbers.append(f"10.{candidate:02d}")
+            used.add(candidate)
+        candidate += 1
+    return numbers
+
+
+def find_number_collisions(dir_: Path = WE_DIR) -> dict:
+    """
+    Map each reused ID to the files sharing it. An empty dict means clean.
+
+    Exists so this class of drift is detectable on demand rather than found by
+    someone eyeballing a directory listing months later.
+    """
+    if not dir_.exists():
+        return {}
+    by_id = {}
+    for p in sorted(dir_.iterdir()):
+        if not p.is_file():
             continue
-        major, minor = int(m.group(1)), int(m.group(2))
-        if major == 10:
-            max_minor = max(max_minor, minor)
-    return f"10.{max_minor + 1:02d}"
+        m = WE_PREFIX_RE.match(p.name)
+        if m:
+            by_id.setdefault(f"{m.group(1)}.{m.group(2)}", []).append(p)
+    return {k: v for k, v in by_id.items() if len(v) > 1}
+
+
+def next_we_number(dir_: Path = WE_DIR) -> str:
+    """Return the next free '10.NN' for this directory."""
+    if not dir_.exists():
+        dir_.mkdir(parents=True, exist_ok=True)
+        return "10.01"
+    return allocate_we_numbers(1, dir_)[0]
 
 
 def we_exists_for(task: str, dir_: Path = WE_DIR) -> Optional[Path]:
@@ -370,7 +421,6 @@ def link_into_daily(wikilinks: list[str], date: Optional[str] = None) -> dict:
 
 def create_for_quests(quests: list[dict], *, dry_run: bool = False, no_save: bool = False) -> list[WEResult]:
     """Batch-create WEs for WAFT quests. Return list of WEResult."""
-    start_num = int(next_we_number().split(".")[1])
     results = []
 
     # Extract tasks defensively
@@ -379,8 +429,8 @@ def create_for_quests(quests: list[dict], *, dry_run: bool = False, no_save: boo
         if isinstance(q, dict) and "task" in q:
             tasks.append(q["task"])
 
-    for i, task in enumerate(tasks):
-        number = f"10.{start_num + i:02d}"
+    # Allocate the whole block up front, skipping IDs already on disk.
+    for task, number in zip(tasks, allocate_we_numbers(len(tasks))):
         result = create(task, number=number, auto_source="waft_quest", dry_run=dry_run, no_save=no_save)
         results.append(result)
 
@@ -394,15 +444,18 @@ def create_for_quests(quests: list[dict], *, dry_run: bool = False, no_save: boo
 
 def create_for_top3(items: list[str], *, dry_run: bool = False, no_save: bool = False, date: Optional[str] = None) -> list[WEResult]:
     """Batch-create WEs for tomorrow's top-3 items. Return list of WEResult."""
-    start_num = int(next_we_number().split(".")[1])
-    results = []
-
-    for i, task in enumerate(items[:3]):
+    # Filter first, then allocate. The old loop numbered by enumerate index, so a
+    # skipped placeholder burned an ID and left a hole in the sequence.
+    tasks = []
+    for task in items[:3]:
         if task.startswith("- [ ]"):
             task = task[5:].strip()
         if not task or task.startswith("("):  # skip placeholders
             continue
-        number = f"10.{start_num + i:02d}"
+        tasks.append(task)
+
+    results = []
+    for task, number in zip(tasks, allocate_we_numbers(len(tasks))):
         result = create(task, number=number, auto_source="tomorrow_top3", dry_run=dry_run, no_save=no_save, date=date)
         results.append(result)
 

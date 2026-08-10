@@ -246,6 +246,30 @@ def check_parent_chain(date_str: str, r: Result):
     r.warn("PARENT-CHAIN: did not reach vault index within 12 hops")
 
 
+# A work-effort filename carries its own target date: NN.MM_YYYYMMDD_slug.md.
+_WE_DATED_RE = re.compile(r"^\d{2}\.\d{2,}_(\d{8})_")
+
+
+def _is_forward_dated(path: Path, date_str: str) -> bool:
+    """True if this file names a date later than the day being checked.
+
+    we_factory builds tomorrow's work efforts during tonight's wrap-up, aimed at
+    a daily note that will not exist until the morning spin-up creates it. Such a
+    file is written today, stamped tomorrow, and necessarily has zero inbound
+    links until its note is built. Flagging it as an orphan blames the vault for
+    the pipeline's ordering — the rim closes on schedule, just not yet.
+    """
+    m = _WE_DATED_RE.match(path.name)
+    if not m:
+        return False
+    try:
+        stamped = datetime.strptime(m.group(1), "%Y%m%d").date()
+        checked = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return False
+    return stamped > checked
+
+
 def check_orphans(date_str: str, r: Result):
     """Vault .md files modified on date_str with zero inbound wikilinks."""
     vault = daily_note.VAULT_DIR
@@ -272,6 +296,9 @@ def check_orphans(date_str: str, r: Result):
         base = p.stem
         if base in entry:
             r.ok(f"ORPHAN: {base} (entry/container — exempt)")
+            continue
+        if _is_forward_dated(p, date_str):
+            r.ok(f"ORPHAN: {base} (forward-dated work effort — links land with its note)")
             continue
         found = False
         for q in vault.rglob("*.md"):
