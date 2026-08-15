@@ -19,6 +19,7 @@ from typing import Optional, TypedDict
 from datetime import datetime
 import llm_pipeline
 import daily_note
+import frontmatter
 import atomic_io
 
 
@@ -382,39 +383,33 @@ def create(
     )
 
 
+#: Daily-note frontmatter field holding WE wikilinks. The template and every note
+#: since 2025-10-19 use `work_efforts_touched`; a bare `work_efforts` key is dead.
+WE_FIELD = "work_efforts_touched"
+
+
 def link_into_daily(wikilinks: list[str], date: Optional[str] = None) -> dict:
-    """Merge wikilinks into daily note frontmatter work_efforts list."""
+    """Merge wikilinks into the daily note's work_efforts_touched frontmatter list."""
     try:
-        text = daily_note.read_full(date)
+        # Read through the public frontmatter API rather than regex: the field is
+        # written as `work_efforts_touched: []` inline when empty and as a block
+        # list once populated, and a regex that only knows one form silently
+        # reports an empty list and clobbers whatever was there.
+        existing = frontmatter.read_fm(date).get(WE_FIELD) or []
+        if isinstance(existing, str):
+            existing = [existing]
 
-        # Extract current list via regex
-        fm_match = re.match(r'^---\n(.*?)\n---', text, re.DOTALL)
-        if not fm_match:
-            return {"status": "no_frontmatter", "linked": 0}
-
-        fm_text = fm_match.group(1)
-
-        # Find work_efforts field
-        we_match = re.search(r'^work_efforts:\s*\n((?:[ \t]+-.*\n)*)', fm_text, re.MULTILINE)
-        existing = []
-        if we_match:
-            for line in we_match.group(1).splitlines():
-                item = line.strip().lstrip("-").strip().strip('"').strip("'")
-                if item:
-                    existing.append(item)
-
-        # Merge, dedup on wikilink target
-        seen = {e.strip("[]") for e in existing}
+        before = {e.strip("[]") for e in existing}
         merged = list(existing)
         for link in wikilinks:
-            key = link.strip("[]")
-            if key not in seen:
+            if link.strip("[]") not in before:
                 merged.append(link)
-                seen.add(key)
+                before.add(link.strip("[]"))
 
-        # Update via daily_note module
-        daily_note.update_frontmatter_fields({"work_efforts": merged}, date=date)
-        return {"status": "linked", "linked": len([w for w in wikilinks if w.strip("[]") not in seen])}
+        added = len(merged) - len(existing)
+        if added:
+            daily_note.update_frontmatter_fields({WE_FIELD: merged}, date=date)
+        return {"status": "linked", "linked": added}
     except Exception as e:
         return {"status": "failed", "error": str(e), "linked": 0}
 
