@@ -11,6 +11,11 @@ indexed cs.AI submission was 2026-07-30, so [today-2, today] was empty while
 These tests pin both halves of the fix: widen-and-retry, and refusing to call an
 empty digest "ok".
 
+Second silent failure, same shape, found 2026-08-06: four of the nine category
+feeds timed out. fetch() logged them to stderr and dropped them, so a 5-of-9
+digest returned the same shape as a clean one and spin_up reported "ok" again.
+TestPartialFetch pins the fix -- failures ride out in the result.
+
 Run:
     cd _experiments/SimpleAgentOS
     python3 -m pytest tests/test_arxiv_window.py -v
@@ -150,6 +155,98 @@ class TestSuspiciousEmpty(unittest.TestCase):
         footer = arxiv.format_dual_pane_md(self._empty_digest()).splitlines()[-1]
         self.assertIn("still returned nothing", footer)
         self.assertIn("worth checking", footer)
+
+
+class TestPartialFetch(unittest.TestCase):
+    """A digest built from some of the feeds must not report as a full one.
+
+    Measured 2026-08-06: astro-ph.GA, cs.AI, cs.CL and cs.MA all timed out.
+    fetch() printed four warnings to stderr, swallowed the exceptions, and
+    returned a dict indistinguishable from a clean run, so spin_up said "ok"
+    and the note carried a 5-of-9 digest as though it were the day's reading.
+    """
+
+    def _fetch_with_failures(self, failing):
+        """Run the real fetch() with urlopen raising for the named categories."""
+        class FakeResponse:
+            def read(self_inner):
+                return (b'<?xml version="1.0"?>'
+                        b'<feed xmlns="http://www.w3.org/2005/Atom"></feed>')
+
+            def __enter__(self_inner):
+                return self_inner
+
+            def __exit__(self_inner, *a):
+                return False
+
+        def fake_urlopen(req, timeout=15):
+            for cat in failing:
+                if f"cat%3A{cat}" in req.full_url or f"cat:{cat}" in req.full_url:
+                    raise TimeoutError("The read operation timed out")
+            return FakeResponse()
+
+        with mock.patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            return arxiv.fetch(["cs.AI", "cs.LG", "cs.CL"], days=2, max_results=1)
+
+    def test_failed_categories_are_recorded(self):
+        result = self._fetch_with_failures(["cs.AI", "cs.CL"])
+        failed = [f["category"] for f in result["failed_categories"]]
+        self.assertEqual(sorted(failed), ["cs.AI", "cs.CL"])
+        self.assertEqual(result["categories_ok"], 1)
+
+    def test_clean_fetch_records_no_failures(self):
+        """Positive control. Without this the test above proves nothing."""
+        result = self._fetch_with_failures([])
+        self.assertEqual(result["failed_categories"], [])
+        self.assertEqual(result["categories_ok"], 3)
+
+    def test_error_detail_is_carried_not_just_the_name(self):
+        result = self._fetch_with_failures(["cs.AI"])
+        self.assertIn("TimeoutError", result["failed_categories"][0]["error"])
+
+    def test_dual_pane_aggregates_failures_across_both_panes(self):
+        def fake_fetch(categories=None, days=1, max_results=20, timeout=15):
+            feed = _feed([_paper("2608.0001")], days)
+            # One failure in each pane, so the merge is actually exercised.
+            feed["failed_categories"] = [{"category": categories[0], "error": "TimeoutError: x"}]
+            feed["categories_ok"] = len(categories) - 1
+            return feed
+
+        with mock.patch.object(arxiv, "fetch", side_effect=fake_fetch):
+            digest = arxiv.fetch_dual_pane(days=2, top_n=5)
+
+        self.assertTrue(digest["partial"])
+        self.assertEqual(len(digest["failed_categories"]), 2)
+        self.assertEqual(digest["categories_total"],
+                         len(arxiv.PHYSICS_CATEGORIES) + len(arxiv.AI_CATEGORIES))
+        self.assertEqual(digest["categories_ok"], digest["categories_total"] - 2)
+
+    def test_dual_pane_is_not_partial_when_every_feed_answers(self):
+        """Positive control for the aggregate layer."""
+        with mock.patch.object(arxiv, "fetch",
+                               side_effect=lambda *a, **kw: _feed([_paper("2608.2")],
+                                                                 kw.get("days", 1))):
+            digest = arxiv.fetch_dual_pane(days=2, top_n=5)
+
+        self.assertFalse(digest["partial"])
+        self.assertEqual(digest["failed_categories"], [])
+        self.assertEqual(digest["categories_ok"], digest["categories_total"])
+
+    def test_widen_retry_does_not_double_count_failures(self):
+        """The widen path re-pulls. Only the surviving attempt's failures count."""
+        def fake_fetch(categories=None, days=1, max_results=20, timeout=15):
+            papers = [] if days < 4 else [_paper("2608.3")]
+            feed = _feed(papers, days)
+            feed["failed_categories"] = [{"category": categories[0], "error": "TimeoutError: x"}]
+            return feed
+
+        with mock.patch.object(arxiv, "fetch", side_effect=fake_fetch):
+            digest = arxiv.fetch_dual_pane(days=2, top_n=5)
+
+        self.assertTrue(digest["window_widened"])
+        # Four fetch() calls happen (2 narrow + 2 wide) but only the wide pair
+        # produced this digest, so two failures, not four.
+        self.assertEqual(len(digest["failed_categories"]), 2)
 
 
 class TestEndpointScheme(unittest.TestCase):

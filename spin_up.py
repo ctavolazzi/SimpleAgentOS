@@ -38,6 +38,7 @@ import vault_stats
 import lab_report
 import commit_summary
 import data_archive
+import harness_architecture
 
 # WIRETAP telemetry — optional live observability (~/Code/_experiments/wiretap).
 # Fails soft everywhere: if the wire isn't running, spin-up must not notice.
@@ -96,6 +97,7 @@ _HARNESS_FILES = [
     "lab_report.py",
     "commit_summary.py",
     "data_archive.py",
+    "harness_architecture.py",
 ]
 
 # TTLs: how long until a cached pull is considered stale
@@ -201,6 +203,16 @@ def _fetch_arxiv(force: bool = False) -> Tuple[dict, str]:
         # fault.
         if a.get("suspicious_empty"):
             return a, f"suspicious (0 papers even at {a.get('days')}d — check the feed)"
+        # A run that reached only some of the feeds is not "ok". It printed
+        # warnings to stderr and then reported success, which is how four
+        # timed-out categories rode through the 2026-08-06 spin-up unnoticed.
+        failed = a.get("failed_categories") or []
+        if failed:
+            names = ", ".join(f["category"] for f in failed[:4])
+            more = f" +{len(failed) - 4}" if len(failed) > 4 else ""
+            ok_n, tot_n = a.get("categories_ok"), a.get("categories_total")
+            widened = f", widened to {a.get('days')}d" if a.get("window_widened") else ""
+            return a, f"partial ({ok_n}/{tot_n} feeds — failed: {names}{more}{widened})"
         if a.get("window_widened"):
             return a, f"ok (widened to {a.get('days')}d)"
         return a, "ok"
@@ -347,29 +359,68 @@ def _fetch_quote(force: bool = False) -> Tuple[Optional[dict], str]:
 
 def _write_location(w: dict, n: dict, aq: Optional[dict] = None,
                     force: bool = False) -> Tuple[bool, str]:
-    """Write location section if needed."""
+    """Write location section if needed.
+
+    Each sub-block is rendered in isolation. A feed that fails costs the note its
+    own line and nothing else: on 2026-08-07 a weather timeout raised inside
+    `weather.format_weather_md`, the single try/except around the whole section
+    swallowed it, and the address, the air quality and the local news — all three
+    fetched fine — were discarded along with the weather.
+    """
     status = daily_note.section_status()
     if status.get("location") == "filled" and not force:
         return True, "skipped (already filled)"
-    try:
-        air_line = ""
-        if aq:
-            air_line = f"\n\n**Air quality:**\n{air_quality.format_md(aq)}"
-        md = f"""---
+
+    degraded = []
+
+    def _block(name: str, render, fallback: str) -> str:
+        """Render one sub-block, recording rather than propagating its failure."""
+        try:
+            out = render()
+        except Exception as e:
+            degraded.append(f"{name} ({type(e).__name__})")
+            return fallback
+        if not (out or "").strip():
+            degraded.append(f"{name} (empty)")
+            return fallback
+        return out
+
+    weather_md = _block("weather", lambda: weather.format_weather_md(w),
+                        weather.UNAVAILABLE_MD)
+    # The formatter degrades in-band rather than raising, so an unavailable
+    # render still has to be reported up as degraded.
+    if weather_md == weather.UNAVAILABLE_MD and not any(
+            d.startswith("weather") for d in degraded):
+        degraded.append("weather (no data)")
+
+    air_line = ""
+    if aq:
+        air_md = _block("air quality", lambda: air_quality.format_md(aq), "")
+        if air_md:
+            air_line = f"\n\n**Air quality:**\n{air_md}"
+
+    news_md = _block("local news", lambda: local_news.format_news_md(n),
+                     "⚠️ *Local news unavailable — the feed returned no data this run.*")
+
+    md = f"""---
 
 **Chico, CA** · 39.73°N, 121.84°W
 
 **Weather:**
-{weather.format_weather_md(w)}{air_line}
+{weather_md}{air_line}
 
 **Local today:**
-{local_news.format_news_md(n)}
+{news_md}
 
 ---"""
+    try:
         daily_note.write_section("location", md, actor="claude")
-        return True, "written"
     except Exception as e:
         return False, f"failed ({type(e).__name__}): {e}"
+
+    if degraded:
+        return True, "written (degraded: " + ", ".join(degraded) + ")"
+    return True, "written"
 
 
 # Marker embedded in generated In the Lab content. Presence of this string is
@@ -1099,6 +1150,16 @@ def main():
         phase2["waft_workspace"] = {"ok": ok, "status": status}
         print(status)
         _tap_status("§ waft_workspace", status)
+
+        # Harness architecture: re-measure ~/.claude and refresh the living doc
+        # at 40.12. Writes a version bump and a changelog row only when the
+        # structural fingerprint moves, so a normal day is silent. This is a
+        # vault write, not a daily-note section, hence no section_status check.
+        print("  • harness_architecture...", end=" ", flush=True)
+        ok, status = harness_architecture.spin_up_check()
+        phase2["harness_architecture"] = {"ok": ok, "status": status}
+        print(status)
+        _tap_status("§ harness_architecture", status)
 
         # Write session-start entry to being journal
         if waft_data:

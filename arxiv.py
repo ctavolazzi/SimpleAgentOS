@@ -93,6 +93,10 @@ def fetch(categories: Optional[List[str]] = None, days: int = 1,
     end_date = datetime.now().strftime("%Y%m%d")
 
     all_papers = []
+    # A category that times out used to vanish into stderr, so a run that reached
+    # 5 of 9 feeds returned the same shape as one that reached all 9 and every
+    # caller read it as "ok". Carry the failures out in the result instead.
+    failed = []
     for cat in cats:
         # arXiv API: returns Atom feed
         # https://arxiv.org/help/api/user-manual
@@ -141,7 +145,9 @@ def fetch(categories: Optional[List[str]] = None, days: int = 1,
                 }
                 all_papers.append(paper)
         except Exception as e:
-            # Continue on failure for one category
+            # Continue on failure for one category, but record it — the digest is
+            # incomplete and the caller has to be able to tell.
+            failed.append({"category": cat, "error": f"{type(e).__name__}: {e}"})
             print(f"Warning: Failed to fetch {cat}: {e}", file=sys.stderr)
 
     # Deduplicate by ID, keep first (most recent due to sort order)
@@ -158,6 +164,8 @@ def fetch(categories: Optional[List[str]] = None, days: int = 1,
         "date_range": (start_date, end_date),
         "count": len(unique),
         "papers": unique[:max_results],
+        "failed_categories": failed,
+        "categories_ok": len(cats) - len(failed),
     }
 
 
@@ -226,6 +234,13 @@ def fetch_dual_pane(days: int = 2, top_n: int = DEFAULT_TOP_N,
 
     total = len(phys_raw["papers"]) + len(ai_raw["papers"])
 
+    # Failures from the pull that actually produced this result. The widen path
+    # re-pulls both panes, so only the last attempt's failures describe what the
+    # caller is holding — carrying the first attempt's too would double-count.
+    failed = (phys_raw.get("failed_categories", [])
+              + ai_raw.get("failed_categories", []))
+    cats_total = len(PHYSICS_CATEGORIES) + len(AI_CATEGORIES)
+
     return {
         "fetched_at": datetime.now().isoformat(timespec="seconds"),
         "date_range": phys_raw["date_range"],
@@ -236,6 +251,12 @@ def fetch_dual_pane(days: int = 2, top_n: int = DEFAULT_TOP_N,
         # normal weekend and callers should surface it rather than print
         # "no papers" as though it were a finding.
         "suspicious_empty": total == 0,
+        # A digest built from a subset of the feeds. Non-empty here means the
+        # paper list is a floor, not a reading of the day.
+        "failed_categories": failed,
+        "categories_total": cats_total,
+        "categories_ok": cats_total - len(failed),
+        "partial": bool(failed),
         "physics": {
             "categories": PHYSICS_CATEGORIES,
             "papers": phys_sorted[:top_n],

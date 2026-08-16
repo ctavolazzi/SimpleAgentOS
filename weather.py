@@ -96,20 +96,82 @@ def describe(code: int) -> tuple:
     return WMO_CODES.get(code, ("Unknown", ""))
 
 
+# Rendered in place of the weather line when the feed gave us nothing usable.
+# Says so out loud: a blank line reads as "calm day", which is the same failure
+# mode that let an empty arXiv feed pass as a real reading for eleven days.
+UNAVAILABLE_MD = "⚠️ *Weather unavailable — the feed returned no data this run.*"
+
+
+def _fmt(w: dict, key: str, spec: str = "{:.0f}") -> Optional[str]:
+    """Format one field, or None if it is absent or not a number."""
+    value = w.get(key)
+    if value is None:
+        return None
+    try:
+        return spec.format(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def format_weather_md(w: dict) -> str:
-    """Format a weather dict as a markdown block for the daily note."""
-    desc, emoji = describe(w["weather_code"])
-    sunrise = w["sunrise"].split("T")[1] if "T" in w["sunrise"] else w["sunrise"]
-    sunset  = w["sunset"].split("T")[1]  if "T" in w["sunset"]  else w["sunset"]
-    return (
-        f"{emoji} **{desc}** · "
-        f"{w['current_temp_f']:.0f}°F (feels {w['feels_like_f']:.0f}°F) · "
-        f"hi {w['high_f']:.0f}° / lo {w['low_f']:.0f}° · "
-        f"{w['precip_pct']}% precip · wind {w['wind_mph']:.0f} mph · "
-        f"humidity {w['humidity_pct']}%  \n"
-        f"☀ sunrise {sunrise} · 🌙 sunset {sunset}  \n"
-        f"*Pulled {w['fetched_at']} from Open-Meteo*"
-    )
+    """
+    Format a weather dict as a markdown block for the daily note.
+
+    Renders whatever subset of fields is present rather than assuming a complete
+    payload. `spin_up._fetch_weather` returns `{}` by contract when the API times
+    out and there is no cache to fall back on; on 2026-08-07 that empty dict hit
+    an unguarded `w["weather_code"]` here and raised KeyError, which the location
+    writer caught by discarding the whole section — address, air quality and
+    local news included. A formatter renders what it has.
+    """
+    if not isinstance(w, dict) or not w:
+        return UNAVAILABLE_MD
+
+    parts = []
+
+    if w.get("weather_code") is not None:
+        desc, emoji = describe(w["weather_code"])
+        parts.append(f"{emoji} **{desc}**".strip())
+
+    temp, feels = _fmt(w, "current_temp_f"), _fmt(w, "feels_like_f")
+    if temp is not None:
+        parts.append(f"{temp}°F (feels {feels}°F)" if feels is not None else f"{temp}°F")
+
+    high, low = _fmt(w, "high_f"), _fmt(w, "low_f")
+    if high is not None and low is not None:
+        parts.append(f"hi {high}° / lo {low}°")
+    elif high is not None:
+        parts.append(f"hi {high}°")
+    elif low is not None:
+        parts.append(f"lo {low}°")
+
+    if w.get("precip_pct") is not None:
+        parts.append(f"{w['precip_pct']}% precip")
+    wind = _fmt(w, "wind_mph")
+    if wind is not None:
+        parts.append(f"wind {wind} mph")
+    if w.get("humidity_pct") is not None:
+        parts.append(f"humidity {w['humidity_pct']}%")
+
+    # A payload carrying only a timestamp is not a reading.
+    if not parts:
+        return UNAVAILABLE_MD
+
+    lines = [" · ".join(parts)]
+
+    sun = []
+    for key, icon in (("sunrise", "☀"), ("sunset", "🌙")):
+        raw = w.get(key)
+        if raw:
+            sun.append(f"{icon} {key} {raw.split('T')[1] if 'T' in raw else raw}")
+    if sun:
+        lines.append(" · ".join(sun))
+
+    fetched = w.get("fetched_at")
+    lines.append(f"*Pulled {fetched} from Open-Meteo*" if fetched
+                 else "*Partial reading from Open-Meteo — no fetch timestamp*")
+
+    return "  \n".join(lines)
 
 
 if __name__ == "__main__":
