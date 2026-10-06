@@ -1,0 +1,9 @@
+{
+  "agents": 12,
+  "ticks": 1200,
+  "entries": 6670,
+  "repairs": 1,
+  "harvests": 4,
+  "p95_tick_ms": 13.05,
+  "database_bytes": 5263360
+}

@@ -1,0 +1,95 @@
+{
+  "version": "fieldwork-v2",
+  "pixellab": {
+    "character": "3c587019-ca90-425d-979b-cd874a74e98e",
+    "water_tank": "0309353c-0520-42ff-8316-e712e17b6882",
+    "walk_group": "b16cc41d-9dfc-4f07-abee-510e09b5b169"
+  },
+  "assets": [
+    {
+      "path": "fieldwork-v2/fieldwork-props.png",
+      "width": 128,
+      "height": 64,
+      "sha256": "bc9e6dbc2e9fb92ada0bcd981dd5d2c8368144b366a5a68a4e04c03e8f8a602a",
+      "source": "Aseprite draw_fieldwork.lua"
+    },
+    {
+      "path": "fieldwork-v2/pump-flow.png",
+      "width": 128,
+      "height": 32,
+      "sha256": "6e488d495e13bbd2068532403c892f58b14ab707fb0b378278f2653e9291823c",
+      "source": "Aseprite draw_fieldwork.lua"
+    },
+    {
+      "path": "fieldwork-v2/researcher-east.png",
+      "width": 48,
+      "height": 48,
+      "sha256": "bc877ca6d3df3e703892f23c1a2da568f401b4bc890445cdad4cedc5f6f5d998",
+      "source": "PixelLab"
+    },
+    {
+      "path": "fieldwork-v2/researcher-north.png",
+      "width": 48,
+      "height": 48,
+      "sha256": "c5179ed0fe4b3095dbcc6fbb013fb46f671acbd3c951b26ad6b7cee5f962aff9",
+      "source": "PixelLab"
+    },
+    {
+      "path": "fieldwork-v2/researcher-south.png",
+      "width": 48,
+      "height": 48,
+      "sha256": "c2fa0d0b6eed266f93842f36267b8b367a107d3dc8ba0e3f8abac9c41a4ffc4a",
+      "source": "PixelLab"
+    },
+    {
+      "path": "fieldwork-v2/researcher-west.png",
+      "width": 48,
+      "height": 48,
+      "sha256": "565d0fa15d5e2edbfd3fd719d939d3bdb9ba852bd3d17640aa72240054408e38",
+      "source": "PixelLab"
+    },
+    {
+      "path": "fieldwork-v2/water-tank.png",
+      "width": 48,
+      "height": 48,
+      "sha256": "8e59efdc5075ccc8ab3ecca82caf5a7d06d06c19e84a1d1796cb452e09d59299",
+      "source": "PixelLab"
+    },
+    {
+      "path": "fieldwork-v2/researcher-walk-south.png",
+      "width": 192,
+      "height": 48,
+      "frames": 4,
+      "frame_ms": 130,
+      "sha256": "487d063a27108d1e2d0b86b5e3b21a7ae05e7b5ecd6539341d6e8648ad443006",
+      "source": "PixelLab template walk, assembled in Aseprite"
+    },
+    {
+      "path": "fieldwork-v2/researcher-walk-east.png",
+      "width": 192,
+      "height": 48,
+      "frames": 4,
+      "frame_ms": 130,
+      "sha256": "d6fcd92fa021adb28ecdd81f06ded45a53c4fd082e7246b98b2898ee670d1b77",
+      "source": "PixelLab template walk, assembled in Aseprite"
+    },
+    {
+      "path": "fieldwork-v2/researcher-walk-north.png",
+      "width": 192,
+      "height": 48,
+      "frames": 4,
+      "frame_ms": 130,
+      "sha256": "ec78caf5ba3cf80d6d3bbc581b3daf9343835cb94efb1eccb2b286c009af32cb",
+      "source": "PixelLab template walk, assembled in Aseprite"
+    },
+    {
+      "path": "fieldwork-v2/researcher-walk-west.png",
+      "width": 192,
+      "height": 48,
+      "frames": 4,
+      "frame_ms": 130,
+      "sha256": "4d9ba0c5f895acb2af2003c346b9259193ac61e5dcd37b0c247d37b21c1ca139",
+      "source": "PixelLab template walk, assembled in Aseprite"
+    }
+  ]
+}

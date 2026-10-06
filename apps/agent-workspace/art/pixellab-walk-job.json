@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "character: 3c587019-ca90-425d-979b-cd874a74e98e\nanimation: walking-4-frames\ndirections: south, east, north, west (4 jobs)\ngroup: b16cc41d-9dfc-4f07-abee-510e09b5b169\neta: ~2-4 min\nadd more directions to this group: animate_character(character_id=\"3c587019-ca90-425d-979b-cd874a74e98e\", template_animation_id=\"walking-4-frames\", animation_group_id=\"b16cc41d-9dfc-4f07-abee-510e09b5b169\", directions=[...])\n\nhint: get_character(character_id=\"3c587019-ca90-425d-979b-cd874a74e98e\")\nif poor: delete_animation(character_id=\"3c587019-ca90-425d-979b-cd874a74e98e\", animation_type=\"...\") then retry with mode=\"v3\""
+    }
+  ],
+  "isError": false
+}

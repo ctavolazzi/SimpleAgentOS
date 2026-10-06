@@ -1,0 +1,22 @@
+{
+  "policy_configurations": 9720,
+  "policy_ticks": 4665600,
+  "storage_sequences": 36,
+  "storage_step_intervention_commands": 5760,
+  "layout_cases": 168,
+  "layout_failures": 8,
+  "http_validation_cases": 54,
+  "http_contract_failures": 14,
+  "followup_cases": 15,
+  "retry_contention_cases": 15,
+  "retry_requests": 1440,
+  "concrete_flag_reproductions": 2,
+  "production_files_changed": false,
+  "exploratory_cases": 10010,
+  "runner_hashes": {
+    "permutation_probe.py": "6792867e8d09c9b2d5ba6ae8d4304ea375890789b37ec62761f19f6c8bb6dd7f",
+    "surface_probe.py": "397739bd9bf07bf663c94dff98cefdfb656035898fc3f0e2a82fa2955198667c",
+    "followup_probe.py": "eca9a2219e12678fc9c91e372dd527d1a55f3b35b5d376bdf88b958164e8ab48",
+    "concurrency_probe.py": "093dc4f51fedec8aa05ada0ffb6e0c8dd7c04b21dab428b5f2b145c7a6da4ae4"
+  }
+}

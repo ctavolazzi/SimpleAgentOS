@@ -9,6 +9,7 @@ Sections are identified by their markdown ## headers. Content between
 one header and the next belongs to that section.
 """
 
+import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -27,7 +28,15 @@ except ImportError:
 
 # ── Paths ──────────────────────────────────────────────────────────────
 
-VAULT_DIR = Path.home() / "Documents" / "Personal-Remote-Vault"
+# VAULT_DIR is overridable by environment because the shell hook
+# (~/.claude/hooks/live-feed.sh) already honours $VAULT_DIR when it chooses
+# where to append feed rows. Until this matched, setting that variable made the
+# hook write to one tree while every Python reader looked in another, and the
+# feed simply went quiet with nothing reporting an error. The default is
+# unchanged, so an unset environment behaves exactly as before.
+VAULT_DIR = Path(
+    os.environ.get("VAULT_DIR") or (Path.home() / "Documents" / "Personal-Remote-Vault")
+).expanduser()
 DAILY_NOTES_DIR = VAULT_DIR / "Daily Notes"
 TEMPLATE_PATH = (VAULT_DIR / "System" / "00-09_system_meta" / "02_templates"
                  / "Daily_Note_Template.md")

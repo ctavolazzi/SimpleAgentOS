@@ -306,5 +306,102 @@ class TestLiveFeedFormatting(unittest.TestCase):
         self.assertTrue(all(l.startswith(">") for l in line.splitlines()))
 
 
+class AgentIdentityTests(unittest.TestCase):
+    """Several agent runtimes share one feed (Claude Code, Codex, others).
+
+    A session id says the rows came from different tabs. It does not say which
+    tool produced them, and CT reading the note cannot tell one agent's work
+    from another's. These pin the labelling, and just as importantly they pin
+    the two cases that must stay unlabelled, because a check that fires all the
+    time gets switched off.
+    """
+
+    def test_two_agents_are_labelled_distinctly(self):
+        events = [
+            {"ts": "09:00:00", "kind": "Bash", "sid": "b552",
+             "agent": "claude", "detail": "pytest -q"},
+            {"ts": "09:00:01", "kind": "Edit", "sid": "7d5a",
+             "agent": "codex", "detail": "bot.py"},
+        ]
+        rows = live_feed._collapse(events)
+        self.assertEqual([r["agent"] for r in rows], ["claude", "codex"])
+
+    def test_one_agent_gets_no_label(self):
+        """Negative control: a solo feed must render exactly as it did before."""
+        events = [
+            {"ts": "09:00:00", "kind": "Bash", "sid": "b552",
+             "agent": "claude", "detail": "one"},
+            {"ts": "09:00:01", "kind": "Bash", "sid": "b552",
+             "agent": "claude", "detail": "two"},
+        ]
+        agents = {e.get("agent", "") for e in events if e.get("agent")}
+        self.assertEqual(len(agents), 1, "solo feed must not trigger agent tags")
+
+    def test_legacy_rows_without_an_agent_key_still_work(self):
+        """Negative control: JSONL written before this field existed."""
+        events = [
+            {"ts": "10:00:00", "kind": "Bash", "sid": "aaaa", "detail": "old"},
+            {"ts": "10:00:01", "kind": "Bash", "sid": "bbbb", "detail": "old2"},
+        ]
+        rows = live_feed._collapse(events)
+        self.assertEqual([r["agent"] for r in rows], ["", ""])
+
+    def test_quiet_runs_never_merge_across_agents(self):
+        """Two agents reading in parallel is not one act of research."""
+        events = [
+            {"ts": "09:00:00", "kind": "Read", "sid": "x", "agent": "claude",
+             "detail": "a.py"},
+            {"ts": "09:00:01", "kind": "Read", "sid": "x", "agent": "codex",
+             "detail": "b.py"},
+        ]
+        rows = live_feed._collapse(events)
+        self.assertEqual(len(rows), 2, "different agents must not collapse")
+
+    def test_agent_name_reads_env_when_not_explicit(self):
+        import os
+        prev = os.environ.get("DAILY_NOTE_AGENT")
+        try:
+            os.environ["DAILY_NOTE_AGENT"] = "codex"
+            self.assertEqual(live_feed.agent_name(), "codex")
+            self.assertEqual(live_feed.agent_name("claude"), "claude")
+        finally:
+            if prev is None:
+                os.environ.pop("DAILY_NOTE_AGENT", None)
+            else:
+                os.environ["DAILY_NOTE_AGENT"] = prev
+
+    def test_agent_name_is_bounded(self):
+        self.assertLessEqual(len(live_feed.agent_name("x" * 100)), 12)
+
+
+class MixedLabellingTests(unittest.TestCase):
+    """The integration bug the unit tests above could not see.
+
+    Found 2026-09-20 while wiring a second agent. Agent labels were computed
+    from non-empty values only, so the realistic rollout state, one runtime
+    emitting the field and one not yet, produced a set of size one and rendered
+    no labels at all. Every unit test still passed, because each side was
+    correct in isolation. Only placing both writers in one feed showed it.
+    """
+
+    def _bucket_count(self, rows):
+        return len({r.get("agent", "") for r in rows})
+
+    def test_labelled_plus_unlabelled_counts_as_two_buckets(self):
+        rows = [{"agent": "codex"}, {"agent": ""}]
+        self.assertEqual(self._bucket_count(rows), 2,
+                         "an unlabelled writer must still be distinguishable")
+
+    def test_solo_unlabelled_feed_is_still_one_bucket(self):
+        """Negative control: pre-adoption feeds must not sprout labels."""
+        rows = [{"agent": ""}, {"agent": ""}]
+        self.assertEqual(self._bucket_count(rows), 1)
+
+    def test_solo_labelled_feed_is_still_one_bucket(self):
+        """Negative control: one agent, labelled, needs no disambiguation."""
+        rows = [{"agent": "claude"}, {"agent": "claude"}]
+        self.assertEqual(self._bucket_count(rows), 1)
+
+
 if __name__ == "__main__":
     unittest.main()

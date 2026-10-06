@@ -1,0 +1,124 @@
+{
+  "retry_cases": [
+    {
+      "workers": 1,
+      "requests": 96,
+      "unique_commands": 1,
+      "deliveries": 1,
+      "passed": true
+    },
+    {
+      "workers": 1,
+      "requests": 96,
+      "unique_commands": 8,
+      "deliveries": 8,
+      "passed": true
+    },
+    {
+      "workers": 1,
+      "requests": 96,
+      "unique_commands": 96,
+      "deliveries": 96,
+      "passed": true
+    },
+    {
+      "workers": 2,
+      "requests": 96,
+      "unique_commands": 1,
+      "deliveries": 1,
+      "passed": true
+    },
+    {
+      "workers": 2,
+      "requests": 96,
+      "unique_commands": 8,
+      "deliveries": 8,
+      "passed": true
+    },
+    {
+      "workers": 2,
+      "requests": 96,
+      "unique_commands": 96,
+      "deliveries": 96,
+      "passed": true
+    },
+    {
+      "workers": 4,
+      "requests": 96,
+      "unique_commands": 1,
+      "deliveries": 1,
+      "passed": true
+    },
+    {
+      "workers": 4,
+      "requests": 96,
+      "unique_commands": 8,
+      "deliveries": 8,
+      "passed": true
+    },
+    {
+      "workers": 4,
+      "requests": 96,
+      "unique_commands": 96,
+      "deliveries": 96,
+      "passed": true
+    },
+    {
+      "workers": 8,
+      "requests": 96,
+      "unique_commands": 1,
+      "deliveries": 1,
+      "passed": true
+    },
+    {
+      "workers": 8,
+      "requests": 96,
+      "unique_commands": 8,
+      "deliveries": 8,
+      "passed": true
+    },
+    {
+      "workers": 8,
+      "requests": 96,
+      "unique_commands": 96,
+      "deliveries": 96,
+      "passed": true
+    },
+    {
+      "workers": 16,
+      "requests": 96,
+      "unique_commands": 1,
+      "deliveries": 1,
+      "passed": true
+    },
+    {
+      "workers": 16,
+      "requests": 96,
+      "unique_commands": 8,
+      "deliveries": 8,
+      "passed": true
+    },
+    {
+      "workers": 16,
+      "requests": 96,
+      "unique_commands": 96,
+      "deliveries": 96,
+      "passed": true
+    }
+  ],
+  "flag_reproductions": [
+    {
+      "case": "string false starts simulation",
+      "status": 200,
+      "running": true,
+      "controller": true
+    },
+    {
+      "case": "string false takes control",
+      "status": 200,
+      "running": true,
+      "controller": true,
+      "owner_after": "observer"
+    }
+  ]
+}
