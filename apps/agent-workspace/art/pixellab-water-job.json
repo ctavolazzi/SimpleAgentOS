@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "id: 0309353c-0520-42ff-8316-e712e17b6882\ndescription: small wooden rainwater collection tank on a short timber stand, turquoise water barrel with brass tap and leafy green vines, cozy woodland research camp, chunky readable pixel art, muted sage terracotta cream palette, isolated transparent background\nsize: 48x48px\nview: low top-down\nmode: basic\nstatus: processing (~30-90s)\n\nthe object is permanent \u2014 place it with place_map_object once ready\nhint: get_map_object(object_id=\"0309353c-0520-42ff-8316-e712e17b6882\")"
+    }
+  ],
+  "isError": false
+}

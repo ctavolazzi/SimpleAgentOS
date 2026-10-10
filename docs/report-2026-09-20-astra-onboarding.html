@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Session Report: Astra Onboarding + License Boundary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#f5f0e6; --cream-dark:#ede6d8; --paper:#faf8f3;
+  --chocolate:#4a2c2a; --choc-mid:#6b4423; --choc-light:#8b5a2b;
+  --burnt-orange:#e07b3c; --rust:#c2410c; --teal:#0d9488; --gold:#d97706;
+  --line:#d4c4a8; --line-dark:#b8a88a; --muted:#7a6b5d; --ink:#3a312b;
+  --crimson:#bd2436; --sage:#3a7a5c; --steel:#1e76a2; --slate:#4e5898;
+  --grad-sunrise:linear-gradient(135deg,var(--burnt-orange) 0%,var(--gold) 100%);
+  --grad-dusk:linear-gradient(135deg,var(--chocolate) 0%,var(--rust) 55%,var(--burnt-orange) 100%);
+  --grad-forge:linear-gradient(135deg,var(--chocolate) 0%,var(--choc-mid) 100%);
+  --shadow-hard:4px 4px 0 var(--chocolate);
+  --max:1100px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--cream); color:var(--ink);
+  font-family:'Outfit',system-ui,sans-serif; font-size:16px; line-height:1.7;
+  overflow-x:hidden;
+}
+.wrap{max-width:var(--max); margin:0 auto; padding:0 24px}
+code,pre,.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+
+/* reveal, scoped to .js so a script error cannot blank the page */
+.js .rv{opacity:0; transform:translateY(26px); transition:opacity .6s ease, transform .6s ease}
+.js .rv.in{opacity:1; transform:none}
+
+/* hero */
+header.hero{
+  position:relative; min-height:78vh; display:flex; align-items:center;
+  background:var(--grad-dusk); color:var(--cream); overflow:hidden;
+  border-bottom:3px solid var(--chocolate);
+}
+header.hero::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(ellipse at 50% 50%, rgba(74,44,42,.72) 0%, rgba(74,44,42,.35) 45%, rgba(74,44,42,0) 75%);
+}
+#heroCanvas{position:absolute; inset:0; width:100%; height:100%; display:block}
+.hero .wrap{position:relative; z-index:2; padding-top:72px; padding-bottom:72px; min-width:0; width:100%}
+.eyebrow{
+  display:inline-block; font-size:.74rem; letter-spacing:.16em; text-transform:uppercase;
+  font-weight:700; padding:6px 14px; border:2px solid var(--burnt-orange);
+  background:rgba(224,123,60,.16); border-radius:2px; margin-bottom:22px;
+}
+h1{font-size:clamp(1.7rem,5.2vw,3.5rem); line-height:1.08; margin:0 0 20px; font-weight:900; letter-spacing:-.02em; overflow-wrap:break-word}
+.lede{font-size:clamp(1.02rem,1.7vw,1.22rem); max-width:62ch; color:#f0e4d4; margin:0 0 34px}
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(132px,100%),1fr)); gap:12px; max-width:920px}
+.stat{background:rgba(250,248,243,.1); border:2px solid rgba(245,240,230,.3); padding:14px 12px; border-radius:3px}
+.stat .n{font-family:'JetBrains Mono',monospace; font-size:1.5rem; font-weight:700; line-height:1.1; display:block}
+.stat .l{font-size:.72rem; text-transform:uppercase; letter-spacing:.07em; color:#e4d5c2; margin-top:5px; display:block}
+.stat.bad{border-color:var(--crimson); background:rgba(189,36,54,.2)}
+.stat.bad .n{color:#ffb4ae}
+.stat.good .n{color:#ffd9a8}
+
+section{padding:76px 0; border-bottom:2px solid var(--line)}
+section:nth-of-type(even){background:var(--paper)}
+h2{font-size:clamp(1.5rem,3.1vw,2.1rem); font-weight:800; margin:0 0 8px; letter-spacing:-.01em}
+h2 .num{font-family:'JetBrains Mono',monospace; color:var(--burnt-orange); font-size:.78em; margin-right:12px}
+.sub{color:var(--muted); font-size:1rem; margin:0 0 34px; max-width:68ch}
+h3{font-size:1.12rem; font-weight:700; margin:34px 0 12px}
+p{max-width:70ch}
+
+.card{background:var(--paper); border:2px solid var(--chocolate); border-radius:3px; padding:22px; box-shadow:var(--shadow-hard)}
+section:nth-of-type(even) .card{background:var(--cream)}
+.grid2{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(290px,100%),1fr)); gap:20px}
+.grid3{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(230px,100%),1fr)); gap:16px}
+
+/* scorecard */
+.score{display:flex; gap:14px; align-items:flex-start; padding:16px 0; border-bottom:1px dashed var(--line-dark)}
+.score:last-child{border-bottom:0}
+.pill{flex:0 0 auto; font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em;
+  padding:5px 10px; border-radius:2px; border:2px solid; white-space:nowrap; margin-top:2px}
+.pill.done{color:#1d5c44; border-color:var(--sage); background:rgba(58,122,92,.13)}
+.pill.partial{color:#8a5a06; border-color:var(--gold); background:rgba(217,119,6,.13)}
+.pill.open{color:#8f1b28; border-color:var(--crimson); background:rgba(189,36,54,.11)}
+.pill.decide{color:#154e6b; border-color:var(--steel); background:rgba(30,118,162,.13)}
+.score .body{flex:1 1 auto}
+.score .body b{display:block; margin-bottom:2px}
+.score .body span{color:var(--muted); font-size:.93rem}
+.quote{font-style:italic; color:var(--choc-mid); border-left:3px solid var(--burnt-orange); padding-left:12px; margin:6px 0 0; font-size:.9rem}
+
+/* tables */
+.scroller{overflow-x:auto; border:2px solid var(--chocolate); border-radius:3px; box-shadow:var(--shadow-hard); background:var(--paper)}
+table{border-collapse:collapse; width:100%; min-width:620px; font-size:.9rem}
+th,td{padding:11px 14px; text-align:left; border-bottom:1px solid var(--line)}
+th{background:var(--grad-forge); color:var(--cream); font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; font-weight:700}
+tr:last-child td{border-bottom:0}
+td.mono{font-family:'JetBrains Mono',monospace; font-size:.83rem}
+.yes{color:#1d5c44; font-weight:700}
+.no{color:var(--crimson); font-weight:700}
+.ctrl{background:rgba(217,119,6,.09)}
+
+pre.block{background:var(--chocolate); color:#f3e7d8; padding:16px 18px; border-radius:3px; overflow-x:auto; font-size:.82rem; line-height:1.55; margin:14px 0; border:2px solid var(--chocolate)}
+pre.block .hl{color:#ffcf9a}
+pre.block .dim{color:#b49d86}
+pre.block .ok{color:#8fd6a8}
+pre.block .err{color:#ff9d93}
+
+/* svg holder */
+.figure{background:var(--paper); border:2px solid var(--chocolate); border-radius:3px; padding:18px; box-shadow:var(--shadow-hard); margin:22px 0}
+section:nth-of-type(even) .figure{background:var(--cream)}
+.figure svg{width:100%; height:auto; display:block}
+.figcap{font-size:.85rem; color:var(--muted); margin-top:12px; padding-top:12px; border-top:1px dashed var(--line-dark)}
+
+/* three */
+#sceneWrap{position:relative; border:2px solid var(--chocolate); border-radius:3px; overflow:hidden; box-shadow:var(--shadow-hard); background:#2a1a19}
+#sceneCanvas{width:100%; height:480px; display:block}
+.scenehint{position:absolute; left:14px; bottom:12px; font-size:.72rem; color:#e0cdb6; background:rgba(42,26,25,.78); padding:6px 11px; border-radius:2px; letter-spacing:.04em; pointer-events:none}
+
+/* timeline */
+.tl{position:relative; padding-left:30px}
+.tl::before{content:""; position:absolute; left:8px; top:6px; bottom:6px; width:3px; background:var(--grad-sunrise)}
+.tlitem{position:relative; padding:0 0 26px 8px}
+.tlitem::before{content:""; position:absolute; left:-27px; top:7px; width:13px; height:13px; border-radius:50%; background:var(--burnt-orange); border:3px solid var(--cream)}
+section:nth-of-type(even) .tlitem::before{border-color:var(--paper)}
+.tlitem.uncommitted::before{background:var(--crimson)}
+.tltime{font-family:'JetBrains Mono',monospace; font-size:.74rem; color:var(--burnt-orange); font-weight:700; letter-spacing:.05em}
+.tlitem b{display:block; margin:2px 0 3px}
+.tlitem span{color:var(--muted); font-size:.9rem}
+
+/* next steps */
+details.step{border:2px solid var(--chocolate); border-radius:3px; background:var(--paper); margin-bottom:14px; box-shadow:var(--shadow-hard); overflow:hidden}
+section:nth-of-type(even) details.step{background:var(--cream)}
+details.step summary{padding:15px 18px; cursor:pointer; font-weight:700; display:flex; gap:12px; align-items:center; list-style:none}
+details.step summary::-webkit-details-marker{display:none}
+details.step summary::after{content:"+"; margin-left:auto; font-family:'JetBrains Mono',monospace; font-size:1.2rem; color:var(--burnt-orange); font-weight:700}
+details.step[open] summary::after{content:"\2212"}
+details.step summary:hover{background:rgba(224,123,60,.08)}
+.rank{font-family:'JetBrains Mono',monospace; background:var(--chocolate); color:var(--cream); width:26px; height:26px; border-radius:2px; display:grid; place-items:center; font-size:.8rem; flex:0 0 auto}
+.stepbody{padding:0 18px 18px; border-top:1px dashed var(--line-dark)}
+.stepbody dl{display:grid; grid-template-columns:auto 1fr; gap:9px 16px; margin:16px 0 0; font-size:.93rem}
+.stepbody dt{font-weight:700; color:var(--choc-mid); font-size:.74rem; text-transform:uppercase; letter-spacing:.07em; padding-top:3px}
+.stepbody dd{margin:0}
+
+/* bottom line */
+.bl{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr)); gap:20px}
+.bl .card{border-width:3px}
+.bl .trust{border-color:var(--sage)}
+.bl .caution{border-color:var(--crimson)}
+.bl h3{margin-top:0; display:flex; align-items:center; gap:9px}
+.bl ul{margin:0; padding-left:20px}
+.bl li{margin-bottom:9px}
+.tag{font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; padding:3px 8px; border-radius:2px}
+.tag.v{background:rgba(58,122,92,.16); color:#1d5c44; border:1px solid var(--sage)}
+.tag.u{background:rgba(189,36,54,.12); color:#8f1b28; border:1px solid var(--crimson)}
+
+footer{padding:40px 0 56px; color:var(--muted); font-size:.85rem; text-align:center}
+a{color:var(--rust)}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .js .rv{opacity:1; transform:none; transition-duration:.01ms}
+}
+@media (max-width:640px){
+  section{padding:52px 0}
+  .stepbody dl{grid-template-columns:1fr; gap:3px 0}
+  .stepbody dt{margin-top:10px}
+  #sceneCanvas{height:340px}
+}
+</style>
+</head>
+<body>
+<script>document.body.classList.add('js');</script>
+
+<header class="hero">
+  <canvas id="heroCanvas"></canvas>
+  <div class="wrap">
+    <span class="eyebrow">Session Report &middot; 20 September 2026</span>
+    <h1>Astra can now write to the daily note, and the licence plan needed inverting</h1>
+    <p class="lede">
+      Two agents now share one state surface with attributable rows, and Codex got the protocol
+      it had no knowledge of. Along the way the open-source plan turned out to be stated
+      backwards in a way that would have made the MIT promise hollow. Nothing was committed:
+      that is still yours to approve.
+    </p>
+    <div class="stats">
+      <div class="stat good"><span class="n">29&rarr;38</span><span class="l">tests passing</span></div>
+      <div class="stat good"><span class="n">0&rarr;8.7k</span><span class="l">Codex AGENTS.md</span></div>
+      <div class="stat bad"><span class="n">0</span><span class="l">commits made</span></div>
+      <div class="stat bad"><span class="n">35</span><span class="l">days PR #66 open</span></div>
+      <div class="stat bad"><span class="n">404</span><span class="l">SimpleAgentOS licence</span></div>
+      <div class="stat"><span class="n">708</span><span class="l">NovaSystem commits read</span></div>
+    </div>
+  </div>
+</header>
+
+<section id="situation">
+  <div class="wrap">
+    <h2 class="rv"><span class="num">01</span>Situation</h2>
+    <p class="sub rv">Scored against what you actually asked for, in your own words, rather than against what was convenient to finish.</p>
+
+    <div class="card rv">
+      <div class="score">
+        <span class="pill done">Closed</span>
+        <div class="body">
+          <b>Open today's daily note</b>
+          <span>It did not exist. Created from template, then populated by spin-up. 11 of 14 sections filled. Plan, journal and hub for today were all missing and were created.</span>
+        </div>
+      </div>
+      <div class="score">
+        <span class="pill done">Closed</span>
+        <div class="body">
+          <b>Catch Codex up on how the Daily Note system works</b>
+          <span>23.9 KB briefing written to the vault, plus an 8.7 KB global AGENTS.md. Its instruction file was literally 0 bytes before this.</span>
+          <p class="quote">"I would appreciate if you could catch him up to speed"</p>
+        </div>
+      </div>
+      <div class="score">
+        <span class="pill done">Closed</span>
+        <div class="body">
+          <b>Spin up the day by snooping around</b>
+          <span>69% readiness, no HALT. Two genuine fails surfaced: vault uncommitted 35 days, disk at 25G against a 20G target.</span>
+        </div>
+      </div>
+      <div class="score">
+        <span class="pill done">Closed</span>
+        <div class="body">
+          <b>Start at the beginning with the original NovaSystem repo, look through the commits</b>
+          <span>708 commits read from 2023-05-26 forward. It began as a prompt, not a program. Five live copies located and classified.</span>
+        </div>
+      </div>
+      <div class="score">
+        <span class="pill done">Closed</span>
+        <div class="body">
+          <b>Give Astra the same access I have</b>
+          <span>Agent identity shipped end to end. An integration bug was caught before it shipped: labels would have rendered on nothing.</span>
+          <p class="quote">"It'll ideally have the same access you have"</p>
+        </div>
+      </div>
+      <div class="score">
+        <span class="pill done">Closed</span>
+        <div class="body">
+          <b>Look up the licence for MCP servers</b>
+          <span>Three licences, not one. MCP moved to Linux Foundation. Python SDK is still MIT, Anthropic PBC. Apache 2.0 is GPLv3-compatible, so you are clear.</span>
+        </div>
+      </div>
+      <div class="score">
+        <span class="pill decide">Decision needed</span>
+        <div class="body">
+          <b>NovaSystem as the code that runs SimpleAgentOS</b>
+          <span>As stated, this breaks the MIT promise. The dependency has to point the other way. Analysis below; the call is yours.</span>
+        </div>
+      </div>
+      <div class="score">
+        <span class="pill open">Open</span>
+        <div class="body">
+          <b>Commit the work</b>
+          <span>Three files modified, nothing committed. Your standing rule is never auto-commit.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="change-one">
+  <div class="wrap">
+    <h2 class="rv"><span class="num">02</span>What changed: rows became attributable</h2>
+    <p class="sub rv">The Live Feed is per day, not per session, so two agents write into one list. It recorded a four character session id and nothing else, which says the rows came from different tabs but never which tool produced them.</p>
+
+    <div class="figure rv">
+      <svg viewBox="0 0 900 300" role="img" aria-label="Before and after of the feed row schema">
+        <defs>
+          <linearGradient id="gForge" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#4a2c2a"/><stop offset="1" stop-color="#6b4423"/>
+          </linearGradient>
+          <linearGradient id="gSun" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#e07b3c"/><stop offset="1" stop-color="#d97706"/>
+          </linearGradient>
+          <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+            <path d="M0,0 L9,4.5 L0,9 z" fill="#c2410c"/>
+          </marker>
+        </defs>
+
+        <text x="20" y="26" font-family="JetBrains Mono, monospace" font-size="12" font-weight="700" fill="#7a6b5d">BEFORE</text>
+        <rect x="20" y="38" width="390" height="92" rx="3" fill="#faf8f3" stroke="#bd2436" stroke-width="2"/>
+        <text x="36" y="62" font-family="JetBrains Mono, monospace" font-size="12" fill="#3a312b">{ ts, kind, sid, detail }</text>
+        <text x="36" y="86" font-family="JetBrains Mono, monospace" font-size="12" fill="#7a6b5d">&#10216;b552&#10217; Bash  pytest</text>
+        <text x="36" y="108" font-family="JetBrains Mono, monospace" font-size="12" fill="#7a6b5d">&#10216;7d5a&#10217; Edit  bot.py</text>
+        <text x="36" y="126" font-family="Outfit, sans-serif" font-size="11" fill="#bd2436" font-weight="700">whose rows? unanswerable</text>
+
+        <text x="20" y="176" font-family="JetBrains Mono, monospace" font-size="12" font-weight="700" fill="#7a6b5d">AFTER</text>
+        <rect x="20" y="188" width="390" height="92" rx="3" fill="#faf8f3" stroke="#3a7a5c" stroke-width="2"/>
+        <text x="36" y="212" font-family="JetBrains Mono, monospace" font-size="12" fill="#3a312b">{ ts, kind, sid, <tspan fill="#c2410c" font-weight="700">agent</tspan>, detail }</text>
+        <text x="36" y="236" font-family="JetBrains Mono, monospace" font-size="12" fill="#7a6b5d">&#10216;<tspan fill="#c2410c">claude</tspan>:b552&#10217; Bash  pytest</text>
+        <text x="36" y="258" font-family="JetBrains Mono, monospace" font-size="12" fill="#7a6b5d">&#10216;<tspan fill="#1e76a2">codex</tspan>:7d5a&#10217; Edit  bot.py</text>
+        <text x="36" y="276" font-family="Outfit, sans-serif" font-size="11" fill="#1d5c44" font-weight="700">attributable</text>
+
+        <path d="M420,84 L470,84" stroke="#c2410c" stroke-width="2.5" marker-end="url(#ar)"/>
+        <path d="M420,234 L470,234" stroke="#c2410c" stroke-width="2.5" marker-end="url(#ar)"/>
+
+        <rect x="482" y="38" width="396" height="242" rx="3" fill="url(#gForge)"/>
+        <text x="502" y="66" font-family="Outfit, sans-serif" font-size="14" font-weight="800" fill="#f5f0e6">Where the field is set</text>
+
+        <rect x="502" y="82" width="356" height="40" rx="2" fill="rgba(245,240,230,.11)" stroke="#e07b3c" stroke-width="1.5"/>
+        <text x="514" y="99" font-family="JetBrains Mono, monospace" font-size="11" fill="#ffcf9a">hooks/live-feed.sh</text>
+        <text x="514" y="114" font-family="Outfit, sans-serif" font-size="11" fill="#e4d5c2">PostToolUse, defaults to claude</text>
+
+        <rect x="502" y="130" width="356" height="40" rx="2" fill="rgba(245,240,230,.11)" stroke="#1e76a2" stroke-width="1.5"/>
+        <text x="514" y="147" font-family="JetBrains Mono, monospace" font-size="11" fill="#9ed4ef">DAILY_NOTE_AGENT=codex</text>
+        <text x="514" y="162" font-family="Outfit, sans-serif" font-size="11" fill="#e4d5c2">env fallback, any process</text>
+
+        <rect x="502" y="178" width="356" height="40" rx="2" fill="rgba(245,240,230,.11)" stroke="#d4c4a8" stroke-width="1.5"/>
+        <text x="514" y="195" font-family="JetBrains Mono, monospace" font-size="11" fill="#f3e7d8">live_feed.py --agent codex</text>
+        <text x="514" y="210" font-family="Outfit, sans-serif" font-size="11" fill="#e4d5c2">explicit, per call</text>
+
+        <rect x="502" y="226" width="356" height="38" rx="2" fill="rgba(224,123,60,.2)" stroke="#e07b3c" stroke-width="1.5"/>
+        <text x="514" y="250" font-family="Outfit, sans-serif" font-size="11.5" fill="#ffcf9a">Labels appear only when a second agent is present</text>
+      </svg>
+      <p class="figcap">Three ways the field gets set, in resolution order: explicit argument, then <code>DAILY_NOTE_AGENT</code>, then empty. Empty is not an error. A solo feed renders exactly as it did before, so nothing got noisier on single-agent days.</p>
+    </div>
+
+    <h3 class="rv">The bug that nearly shipped</h3>
+    <p class="rv">
+      Labels were first computed from non-empty values only. That is the obvious implementation and it is wrong,
+      because the realistic rollout state is one runtime emitting the field while another has not adopted it yet.
+      In that state the set of agents has size one, so the renderer concluded there was nothing to disambiguate
+      and printed <b>no labels at all</b>. Every unit test still passed, because each side was correct on its own.
+    </p>
+    <pre class="block rv"><span class="dim"># realistic mixed state, measured before the fix</span>
+&gt; `13:31:02` <span class="hl">&#10216;7d5a&#10217;</span> Edit `bot.py`      <span class="dim">&lt;- codex, unlabelled</span>
+&gt; `13:31:02` <span class="hl">&#10216;b552&#10217;</span> Bash `pytest`      <span class="dim">&lt;- claude, unlabelled</span>
+
+codex row labelled? <span class="err">False</span></pre>
+    <p class="rv">
+      Unlabelled rows now count as their own bucket and render as <code>&#10216;?:sid&#10217;</code>. An unlabelled writer in a
+      mixed feed is a real distinction worth showing, not an absence worth hiding.
+    </p>
+  </div>
+</section>
+
+<section id="proof">
+  <div class="wrap">
+    <h2 class="rv"><span class="num">03</span>Proof, with controls</h2>
+    <p class="sub rv">A row of green ticks with no control proves nothing. The two highlighted rows are the controls, and they matter more than the positive results: they are what shows the change does something rather than nothing, and that it did not break the ordinary case.</p>
+
+    <div class="scroller rv">
+      <table>
+        <thead>
+          <tr><th>Check</th><th>Method</th><th>Before</th><th>After</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Two agents in one feed</td>
+            <td class="mono">render_markdown()</td>
+            <td class="no">&#10216;b552&#10217; only</td>
+            <td class="yes">&#10216;claude:b552&#10217; / &#10216;codex:7d5a&#10217;</td>
+          </tr>
+          <tr class="ctrl">
+            <td><b>Negative control</b><br>mixed adopted / not adopted</td>
+            <td class="mono">one agent set, one blank</td>
+            <td class="no">no labels rendered</td>
+            <td class="yes">&#10216;?:aaaa&#10217; shown</td>
+          </tr>
+          <tr class="ctrl">
+            <td><b>Positive control</b><br>solo feed unchanged</td>
+            <td class="mono">single agent, 2 rows</td>
+            <td class="mono">no tag</td>
+            <td class="yes">no tag, identical</td>
+          </tr>
+          <tr>
+            <td>Legacy JSONL, no agent key</td>
+            <td class="mono">pre-change rows replayed</td>
+            <td class="mono">&#10216;aaaa&#10217;</td>
+            <td class="yes">still renders</td>
+          </tr>
+          <tr>
+            <td>Quiet runs across agents</td>
+            <td class="mono">_collapse()</td>
+            <td class="no">merged into 1 row</td>
+            <td class="yes">stays 2 rows</td>
+          </tr>
+          <tr>
+            <td>Mutation test</td>
+            <td class="mono">revert the guard, rerun</td>
+            <td>n/a</td>
+            <td class="yes">goes red, then green</td>
+          </tr>
+          <tr>
+            <td>Live production hook</td>
+            <td class="mono">tail today's real JSONL</td>
+            <td class="no">no agent key</td>
+            <td class="yes">agent=claude</td>
+          </tr>
+          <tr>
+            <td>Suite</td>
+            <td class="mono">pytest tests/test_live_feed_layout.py</td>
+            <td class="mono">29 passed</td>
+            <td class="yes">38 passed</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="rv">The mutation test, because a green check never watched go red is not evidence</h3>
+    <pre class="block rv"><span class="dim">$ # remove the cross-agent collapse guard on purpose</span>
+<span class="err">AssertionError: 1 != 2 : different agents must not collapse</span>
+FAILED ...::test_quiet_runs_never_merge_across_agents
+<span class="err">1 failed</span>, 34 passed
+
+<span class="dim">$ # restore</span>
+<span class="ok">35 passed</span> in 0.24s</pre>
+    <p class="rv">
+      The test was watched failing for the intended reason and then passing again. Without that step the suite is
+      a claim about itself. The live hook was also confirmed against today's real feed file rather than a fixture:
+      <code>ts=13:32:49 kind=Edit sid=b552 agent=claude</code>.
+    </p>
+  </div>
+</section>
+
+<section id="scene">
+  <div class="wrap">
+    <h2 class="rv"><span class="num">04</span>The licence boundary, in 3D</h2>
+    <p class="sub rv">Drag to orbit. This is the architecture the open-source plan needs, and it is not the one described in the brief. The gap in the middle is the whole legal argument.</p>
+
+    <div id="sceneWrap" class="rv">
+      <canvas id="sceneCanvas"></canvas>
+      <div class="scenehint">drag to orbit &middot; scroll to zoom</div>
+    </div>
+
+    <div class="grid3" style="margin-top:22px">
+      <div class="card rv">
+        <h3 style="margin-top:0">Left cluster, MIT</h3>
+        <p style="font-size:.92rem;margin:0">SimpleAgentOS. Must run standalone with zero NovaSystem required. That standalone property is the only thing that makes MIT mean anything to a user.</p>
+      </div>
+      <div class="card rv">
+        <h3 style="margin-top:0">The gap, MCP</h3>
+        <p style="font-size:.92rem;margin:0">A published general purpose protocol with a defined schema. Particles cross it, but no symbol does. Nothing imports across this line.</p>
+      </div>
+      <div class="card rv">
+        <h3 style="margin-top:0">Right cluster, GPL-3.0</h3>
+        <p style="font-size:.92rem;margin:0">NovaSystem. Optional and swappable. Plugging it in is how a user knowingly opts into copyleft, rather than inheriting it by surprise.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="change-two">
+  <div class="wrap">
+    <h2 class="rv"><span class="num">05</span>What changed: the plan was stated backwards</h2>
+    <p class="sub rv">You described SimpleAgentOS as "a layer I want to put onto the NovaSystem harness". That direction kills the MIT promise. Your intent is right and the sentence is not.</p>
+
+    <div class="figure rv">
+      <svg viewBox="0 0 900 340" role="img" aria-label="Two dependency directions and their licence consequences">
+        <defs>
+          <marker id="ar2" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+            <path d="M0,0 L9,4.5 L0,9 z" fill="#bd2436"/>
+          </marker>
+          <marker id="ar3" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+            <path d="M0,0 L9,4.5 L0,9 z" fill="#3a7a5c"/>
+          </marker>
+        </defs>
+
+        <rect x="18" y="16" width="420" height="300" rx="4" fill="rgba(189,36,54,.06)" stroke="#bd2436" stroke-width="2" stroke-dasharray="7 5"/>
+        <text x="36" y="44" font-family="Outfit, sans-serif" font-size="14" font-weight="800" fill="#8f1b28">AS STATED: copyleft reaches the MIT layer</text>
+
+        <rect x="120" y="62" width="216" height="52" rx="3" fill="#faf8f3" stroke="#4a2c2a" stroke-width="2"/>
+        <text x="228" y="84" text-anchor="middle" font-family="Outfit, sans-serif" font-size="13" font-weight="700" fill="#3a312b">SimpleAgentOS</text>
+        <text x="228" y="102" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#bd2436">MIT in name only</text>
+
+        <path d="M228,118 L228,166" stroke="#bd2436" stroke-width="2.5" marker-end="url(#ar2)"/>
+        <text x="240" y="146" font-family="Outfit, sans-serif" font-size="11" fill="#8f1b28">requires</text>
+
+        <rect x="120" y="170" width="216" height="52" rx="3" fill="#faf8f3" stroke="#4a2c2a" stroke-width="2"/>
+        <text x="228" y="192" text-anchor="middle" font-family="Outfit, sans-serif" font-size="13" font-weight="700" fill="#3a312b">NovaSystem</text>
+        <text x="228" y="210" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#7a6b5d">GPL-3.0</text>
+
+        <rect x="48" y="242" width="360" height="56" rx="3" fill="rgba(189,36,54,.1)" stroke="#bd2436" stroke-width="1.5"/>
+        <text x="228" y="264" text-anchor="middle" font-family="Outfit, sans-serif" font-size="11.5" fill="#8f1b28">The combination is a derivative work.</text>
+        <text x="228" y="284" text-anchor="middle" font-family="Outfit, sans-serif" font-size="11.5" fill="#8f1b28">"Just use it" stops being true for users.</text>
+
+        <rect x="462" y="16" width="420" height="300" rx="4" fill="rgba(58,122,92,.06)" stroke="#3a7a5c" stroke-width="2"/>
+        <text x="480" y="44" font-family="Outfit, sans-serif" font-size="14" font-weight="800" fill="#1d5c44">AS NEEDED: two programs at arm's length</text>
+
+        <rect x="482" y="76" width="168" height="52" rx="3" fill="#faf8f3" stroke="#4a2c2a" stroke-width="2"/>
+        <text x="566" y="98" text-anchor="middle" font-family="Outfit, sans-serif" font-size="12.5" font-weight="700" fill="#3a312b">SimpleAgentOS</text>
+        <text x="566" y="116" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10.5" fill="#1d5c44">MIT, standalone</text>
+
+        <rect x="694" y="76" width="168" height="52" rx="3" fill="#faf8f3" stroke="#4a2c2a" stroke-width="2"/>
+        <text x="778" y="98" text-anchor="middle" font-family="Outfit, sans-serif" font-size="12.5" font-weight="700" fill="#3a312b">NovaSystem</text>
+        <text x="778" y="116" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10.5" fill="#7a6b5d">GPL-3.0, optional</text>
+
+        <path d="M654,102 L690,102" stroke="#3a7a5c" stroke-width="2.5" marker-end="url(#ar3)"/>
+        <path d="M690,112 L654,112" stroke="#3a7a5c" stroke-width="2.5" marker-end="url(#ar3)"/>
+
+        <line x1="672" y1="146" x2="672" y2="212" stroke="#3a7a5c" stroke-width="2" stroke-dasharray="5 4"/>
+        <text x="672" y="166" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10.5" fill="#1d5c44">MCP</text>
+
+        <rect x="482" y="180" width="380" height="54" rx="3" fill="rgba(58,122,92,.1)" stroke="#3a7a5c" stroke-width="1.5"/>
+        <text x="672" y="202" text-anchor="middle" font-family="Outfit, sans-serif" font-size="11.5" fill="#1d5c44">Measured today: 0 files import across this line,</text>
+        <text x="672" y="221" text-anchor="middle" font-family="Outfit, sans-serif" font-size="11.5" fill="#1d5c44">in either direction. It already works this way.</text>
+
+        <rect x="482" y="248" width="380" height="50" rx="3" fill="#faf8f3" stroke="#d4c4a8" stroke-width="1.5"/>
+        <text x="672" y="269" text-anchor="middle" font-family="Outfit, sans-serif" font-size="11" fill="#7a6b5d">Plugging in NovaSystem is how a user opts into</text>
+        <text x="672" y="287" text-anchor="middle" font-family="Outfit, sans-serif" font-size="11" fill="#7a6b5d">copyleft knowingly. That is "swap the intelligence".</text>
+      </svg>
+      <p class="figcap">The right hand side is not aspirational. <code>novasystem/memory/journal.py</code> already reaches SimpleAgentOS over plain HTTP and its own commit message states the reason: "SimpleAgentOS owns the PocketBase instance and the schema; this speaks plain HTTP to the same collection and never imports it. Either project runs fine without the other."</p>
+    </div>
+
+    <h3 class="rv">What the FSF actually says about the gap</h3>
+    <p class="rv">
+      Pipes and sockets <b>normally</b> mean separate programs. But the FSF is explicit that mechanism alone does not
+      decide it: "if the semantics of the communication are intimate enough, exchanging complex internal data
+      structures, that too could be a basis to consider the two parts as combined into a larger program."
+      MCP is a strong fact pattern because it is a published, general purpose protocol with a defined schema that
+      unrelated programs use. It gets weaker the moment the tools start shuttling NovaSystem's internal Python
+      objects across. Keep the wire format a real interface.
+    </p>
+
+    <div class="scroller rv" style="margin-top:22px">
+      <table>
+        <thead><tr><th>Repo</th><th>Public</th><th>Licence, per GitHub API</th><th>Consequence</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">ctavolazzi/NovaSystem</td><td>yes</td><td class="mono">GPL-3.0</td><td>as intended</td></tr>
+          <tr><td class="mono">ctavolazzi/NovaSystem-Codex</td><td>yes</td><td class="mono">GPL-3.0</td><td>as intended</td></tr>
+          <tr class="ctrl"><td class="mono">ctavolazzi/SimpleAgentOS</td><td>yes</td><td class="no">404, none</td><td class="no">all rights reserved, nobody may fork or use it</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="rv" style="margin-top:14px">
+      My first query said all three had no licence, which was my query being wrong rather than the repos. The
+      authoritative <code>repos/{owner}/{repo}/license</code> endpoint corrects two of the three. The SimpleAgentOS
+      result survives that correction: it is genuinely unlicensed and genuinely public.
+    </p>
+  </div>
+</section>
+
+<section id="timeline">
+  <div class="wrap">
+    <h2 class="rv"><span class="num">06</span>Timeline</h2>
+    <p class="sub rv">No commit SHAs appear below, because no commits were made. Your standing rule is that committing is yours to request.</p>
+    <div class="tl rv">
+      <div class="tlitem"><span class="tltime">11:25</span><b>Daily note did not exist</b><span>Created from template. Spin-up populated 11 of 14 sections, and created today's plan, journal and hub, all three of which were missing.</span></div>
+      <div class="tlitem"><span class="tltime">11:31</span><b>Preflight, 69%, no HALT</b><span>Two fails: vault last committed 35 days ago with 41 changed paths, disk at 25G against a 20G target. Three fetchers died on DNS.</span></div>
+      <div class="tlitem"><span class="tltime">11:38</span><b>708 commits read, from 2023-05-26</b><span>NovaSystem began as a prompt, not a program. DCE and CAE roles present in the first README and still load bearing in the 2026 persona layer.</span></div>
+      <div class="tlitem"><span class="tltime">11:40</span><b>PR #66: open 35 days, MERGEABLE</b><span>Persona, coworking and memory layers live only on that branch. Branch tests verified at 228 passed, 1 pre-existing failure.</span></div>
+      <div class="tlitem"><span class="tltime">11:42</span><b>gitignore trap proven by probe</b><span>NovaSystem-Codex silently ignores its own package on macOS. Probe file invisible to git status there, correctly reported in the original repo. Both probes removed.</span></div>
+      <div class="tlitem"><span class="tltime">11:44</span><b>Briefing written, 23.9 KB</b><span>Wikilinked into the note. Every claim marked measured or reported.</span></div>
+      <div class="tlitem"><span class="tltime">13:2x</span><b>Codex AGENTS.md written, 0 to 8.7 KB</b><span>Its global instruction file was empty. Astra had no knowledge of the daily note system at all.</span></div>
+      <div class="tlitem"><span class="tltime">13:3x</span><b>Agent identity shipped, 29 to 38 tests</b><span>Integration bug caught: labels rendered on nothing in the realistic mixed state. Mutation tested. Live hook confirmed against the real feed.</span></div>
+      <div class="tlitem"><span class="tltime">13:5x</span><b>Licence research</b><span>MCP is three licences under Linux Foundation stewardship; Python SDK still MIT. Apache 2.0 clears GPLv3. Import coupling measured at zero in both directions.</span></div>
+      <div class="tlitem uncommitted"><span class="tltime">now</span><b>3 files modified, 0 committed</b><span>live_feed.py (+53), tests (+97), hooks/live-feed.sh (+7). Awaiting your approval.</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="next">
+  <div class="wrap">
+    <h2 class="rv"><span class="num">07</span>Next steps</h2>
+    <p class="sub rv">Ranked by what breaks trust and what blocks the book, not by what is quickest.</p>
+
+    <details class="step rv" open>
+      <summary><span class="rank">1</span>Put an MIT LICENSE on SimpleAgentOS</summary>
+      <div class="stepbody">
+        <dl>
+          <dt>Situation</dt><dd>The repo is public and the GitHub licence endpoint returns 404. No licence means all rights reserved.</dd>
+          <dt>Why it matters</dt><dd>The entire open-source plan rests on people being able to take SimpleAgentOS freely. Right now, legally, they cannot. Anyone who already forked it has no grant.</dd>
+          <dt>Recommendation</dt><dd>Add LICENSE with the MIT text and your copyright line, and declare it in pyproject metadata so tooling sees it too.</dd>
+          <dt>Expected outcome</dt><dd>The API returns MIT, the GitHub sidebar shows it, and the promise you want to make becomes real.</dd>
+          <dt>Blocked on</dt><dd>Nothing. Two minutes, say the word.</dd>
+        </dl>
+      </div>
+    </details>
+
+    <details class="step rv">
+      <summary><span class="rank">2</span>Decide the dependency direction before writing any MCP server</summary>
+      <div class="stepbody">
+        <dl>
+          <dt>Situation</dt><dd>You described SimpleAgentOS as a layer on the NovaSystem harness. Measured today, neither imports the other.</dd>
+          <dt>Why it matters</dt><dd>If the MIT layer requires the GPL core, the combination is a derivative work and the MIT label stops protecting users. The swappability is not a feature here, it is the legal mechanism.</dd>
+          <dt>Recommendation</dt><dd>State it as: SimpleAgentOS runs standalone, NovaSystem is one optional backend behind MCP. Then write the MCP servers to that contract, with a real schema rather than serialised internals.</dd>
+          <dt>Expected outcome</dt><dd>MIT means what you want it to mean, and plugging in NovaSystem becomes a deliberate opt-in to copyleft.</dd>
+          <dt>Blocked on</dt><dd>You. This is an architecture call, not a refactor.</dd>
+        </dl>
+      </div>
+    </details>
+
+    <details class="step rv">
+      <summary><span class="rank">3</span>Settle contributions before opening the gates</summary>
+      <div class="stepbody">
+        <dl>
+          <dt>Situation</dt><dd>You own both copyrights, so code can move between MIT and GPL freely today. <code>novasystem.coworking</code> is GPL and is the daily note system generalised, so the two already share design DNA.</dd>
+          <dt>Why it matters</dt><dd>The first outside pull request you merge ends that freedom permanently. Relicensing later needs every contributor's agreement.</dd>
+          <dt>Recommendation</dt><dd>Either adopt a CLA, or commit publicly to a hard rule that code never crosses the licence boundary. Worth twenty minutes with an actual lawyer given this ships attached to a paid product.</dd>
+          <dt>Expected outcome</dt><dd>You keep the ability to restructure, or you knowingly trade it away instead of losing it by accident.</dd>
+          <dt>Blocked on</dt><dd>You, and ideally counsel.</dd>
+        </dl>
+      </div>
+    </details>
+
+    <details class="step rv">
+      <summary><span class="rank">4</span>Merge PR #66</summary>
+      <div class="stepbody">
+        <dl>
+          <dt>Situation</dt><dd>Open 35 days, MERGEABLE, 11 commits. Persona ledger, coworking layer and memory bridge exist only on that branch. Main still shows 2025 code.</dd>
+          <dt>Why it matters</dt><dd>NovaSystem cannot be the infrastructure line while its infrastructure sits outside main. Anyone who clones it today gets none of this.</dd>
+          <dt>Recommendation</dt><dd>Merge on GitHub. Branch verified at 228 passed with 1 pre-existing failure that was disclosed in its own commit.</dd>
+          <dt>Expected outcome</dt><dd>The GPL side becomes the thing your book actually points at.</dd>
+          <dt>Blocked on</dt><dd>You. Neither agent merges PRs.</dd>
+        </dl>
+      </div>
+    </details>
+
+    <details class="step rv">
+      <summary><span class="rank">5</span>Fix the gitignore trap in NovaSystem-Codex</summary>
+      <div class="stepbody">
+        <dl>
+          <dt>Situation</dt><dd><code>.gitignore:218</code> carries <code>/NovaSystem/</code>. macOS <code>core.ignorecase</code> makes it match the real <code>novasystem/</code> package. Proven by probe today.</dd>
+          <dt>Why it matters</dt><dd>Any new module added there is invisible to git status and omitted from a commit of everything, with no warning. It will not reproduce on case-sensitive CI. This will eat Astra's work specifically, since that repo is its assigned home.</dd>
+          <dt>Recommendation</dt><dd>Remove the pattern and leave the comment explaining why it must not return, exactly as the original repo did in <code>3308f37</code>.</dd>
+          <dt>Expected outcome</dt><dd>New modules become visible. Good first commit for Astra, with the negative control already written.</dd>
+          <dt>Blocked on</dt><dd>Nothing technical, only your commit approval.</dd>
+        </dl>
+      </div>
+    </details>
+
+    <details class="step rv">
+      <summary><span class="rank">6</span>Commit the three modified files, and the vault</summary>
+      <div class="stepbody">
+        <dl>
+          <dt>Situation</dt><dd>live_feed.py, its tests and hooks/live-feed.sh are modified and uncommitted. Separately the vault has gone 35 days with 41 changed paths.</dd>
+          <dt>Why it matters</dt><dd>Uncommitted work in repos other sessions touch is unprotected, and this machine has lost work to exactly that before.</dd>
+          <dt>Recommendation</dt><dd>Commit the three files as one unit, then the vault separately.</dd>
+          <dt>Expected outcome</dt><dd>The agent identity work survives the session.</dd>
+          <dt>Blocked on</dt><dd>You. Never auto-commit is your rule and I kept it.</dd>
+        </dl>
+      </div>
+    </details>
+  </div>
+</section>
+
+<section id="bottom">
+  <div class="wrap">
+    <h2 class="rv"><span class="num">08</span>Bottom line</h2>
+    <div class="bl">
+      <div class="card trust rv">
+        <h3><span class="tag v">verified</span> Safe to rely on</h3>
+        <ul>
+          <li>Agent identity works end to end. 38 tests, mutation tested, and confirmed writing <code>agent=claude</code> into today's real feed file rather than a fixture.</li>
+          <li>A solo feed renders exactly as before. The positive control passed.</li>
+          <li>PR #66 is OPEN and MERGEABLE with 11 commits, read from the GitHub API today.</li>
+          <li>The gitignore trap in NovaSystem-Codex is real, proven by probe, with the original repo as the negative control.</li>
+          <li>Zero import coupling between SimpleAgentOS and NovaSystem, measured in both directions.</li>
+          <li>SimpleAgentOS is public with no licence. Confirmed against the authoritative endpoint after my first query was wrong.</li>
+          <li>MCP Python SDK is MIT. Apache 2.0 clears GPLv3, which is what you are on.</li>
+        </ul>
+      </div>
+      <div class="card caution rv">
+        <h3><span class="tag u">unverified</span> Do not rely on yet</h3>
+        <ul>
+          <li>Whether Codex exposes a per-tool-call hook. The binary could not be located from this sandbox, so Astra drives the feed explicitly until someone checks.</li>
+          <li>The licence analysis is reasoning from primary sources, not legal advice. The CLA question in particular deserves a lawyer, because this ships attached to a paid product.</li>
+          <li>The Codex seed's own test suite. Reported as 7 passing, not run by me.</li>
+          <li>Whether <code>novasystem.memory</code> can reach PocketBase today.</li>
+          <li>NovaSystem star and fork counts, carried from an August work effort and not re-measured.</li>
+          <li>Nothing is committed. Every code change described here exists only in working trees.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    Session report, 20 September 2026 &middot; SimpleAgentOS &middot; NovaSystem<br>
+    Companion briefing: <code>Handoffs/2026-09-20_codex-astra-novasystem-briefing.md</code>
+  </div>
+</footer>
+
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* radial sprite texture, so points are soft dots and not hard squares */
+function dotTexture(){
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const grad = g.createRadialGradient(32,32,0,32,32,32);
+  grad.addColorStop(0,'rgba(255,255,255,1)');
+  grad.addColorStop(0.35,'rgba(255,255,255,.75)');
+  grad.addColorStop(1,'rgba(255,255,255,0)');
+  g.fillStyle = grad;
+  g.fillRect(0,0,64,64);
+  return new THREE.CanvasTexture(c);
+}
+
+function labelSprite(text, color){
+  const pad = 22, fs = 46;
+  const c = document.createElement('canvas');
+  const g = c.getContext('2d');
+  g.font = `700 ${fs}px Outfit, sans-serif`;
+  const w = g.measureText(text).width;
+  c.width = Math.ceil(w + pad*2);
+  c.height = fs + pad*2;
+  const g2 = c.getContext('2d');
+  g2.font = `700 ${fs}px Outfit, sans-serif`;
+  g2.fillStyle = color;
+  g2.textBaseline = 'middle';
+  g2.fillText(text, pad, c.height/2);
+  const tex = new THREE.CanvasTexture(c);
+  tex.needsUpdate = true;
+  const mat = new THREE.SpriteMaterial({map:tex, transparent:true, depthWrite:false, depthTest:false});
+  const sp = new THREE.Sprite(mat);
+  sp.renderOrder = 10;
+  sp.scale.set(c.width/c.height * 1.05, 1.05, 1);
+  return sp;
+}
+
+/* ---------- hero particle field ---------- */
+(function hero(){
+  const cv = document.getElementById('heroCanvas');
+  if(!cv) return;
+  const r = new THREE.WebGLRenderer({canvas:cv, alpha:true, antialias:true});
+  r.setPixelRatio(Math.min(devicePixelRatio,2));
+  const sc = new THREE.Scene();
+  const cam = new THREE.PerspectiveCamera(60,1,0.1,120);
+  cam.position.set(0,0,30);
+  cam.lookAt(0,0,0);
+
+  const N = 420, pos = new Float32Array(N*3), vel = new Float32Array(N);
+  for(let i=0;i<N;i++){
+    pos[i*3]   = (Math.random()-0.5)*80;
+    pos[i*3+1] = (Math.random()-0.5)*46;
+    pos[i*3+2] = (Math.random()-0.5)*40;
+    vel[i] = 0.004 + Math.random()*0.014;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({
+    size:0.52, map:dotTexture(), transparent:true, opacity:.55,
+    color:0xe0a06a, depthWrite:false, blending:THREE.AdditiveBlending
+  }));
+  sc.add(pts);
+
+  function size(){
+    const w = cv.clientWidth, h = cv.clientHeight;
+    if(!w||!h) return;
+    r.setSize(w,h,false);
+    cam.aspect = w/h; cam.updateProjectionMatrix();
+  }
+  addEventListener('resize', size); size();
+
+  r.setAnimationLoop(()=>{
+    if(!reduced){
+      const p = geo.attributes.position.array;
+      for(let i=0;i<N;i++){
+        p[i*3+1] += vel[i];
+        if(p[i*3+1] > 24) p[i*3+1] = -24;
+      }
+      geo.attributes.position.needsUpdate = true;
+      pts.rotation.y += 0.00045;
+    }
+    r.render(sc,cam);
+  });
+})();
+
+/* ---------- licence boundary scene ---------- */
+(function boundary(){
+  const cv = document.getElementById('sceneCanvas');
+  if(!cv) return;
+  const r = new THREE.WebGLRenderer({canvas:cv, antialias:true});
+  r.setPixelRatio(Math.min(devicePixelRatio,2));
+  const sc = new THREE.Scene();
+  sc.background = new THREE.Color(0x2a1a19);
+  sc.fog = new THREE.Fog(0x2a1a19, 26, 62);
+
+  const cam = new THREE.PerspectiveCamera(52,1,0.1,200);
+  cam.position.set(0, 9, 23);
+  cam.lookAt(0,0,0);
+
+  sc.add(new THREE.AmbientLight(0xffffff,0.62));
+  const key = new THREE.DirectionalLight(0xffd9a8,1.05);
+  key.position.set(9,14,10); sc.add(key);
+  const rim = new THREE.DirectionalLight(0x9ed4ef,0.5);
+  rim.position.set(-10,6,-8); sc.add(rim);
+
+  const MIT = 0x3a7a5c, GPL = 0xc2410c, LINE = 0xd4c4a8;
+
+  function cluster(cx, color, label, nodes){
+    const grp = new THREE.Group();
+    const core = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(2.1, 1),
+      new THREE.MeshStandardMaterial({color, roughness:.45, metalness:.15, flatShading:true})
+    );
+    grp.add(core);
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(3.5, 0.075, 8, 64),
+      new THREE.MeshBasicMaterial({color, transparent:true, opacity:.4})
+    );
+    ring.rotation.x = Math.PI/2;
+    grp.add(ring);
+    nodes.forEach((n,i)=>{
+      const a = (i/nodes.length)*Math.PI*2;
+      const m = new THREE.Mesh(
+        new THREE.BoxGeometry(1.15,0.5,1.15),
+        new THREE.MeshStandardMaterial({color:0xfaf8f3, roughness:.6})
+      );
+      m.position.set(Math.cos(a)*3.5, 0, Math.sin(a)*3.5);
+      grp.add(m);
+      const sp = labelSprite(n, '#f3e7d8');
+      sp.scale.multiplyScalar(0.72);
+      sp.position.set(Math.cos(a)*3.5, 1.15, Math.sin(a)*3.5);
+      grp.add(sp);
+    });
+    const big = labelSprite(label, color === MIT ? '#8fd6a8' : '#ffb089');
+    big.scale.multiplyScalar(1.5);
+    big.position.set(0, 4.6, 0);
+    grp.add(big);
+    grp.position.x = cx;
+    sc.add(grp);
+    return {grp, ring};
+  }
+
+  const left  = cluster(-9, MIT, 'SimpleAgentOS  MIT', ['daily_note','live_feed','audit','atomic_io']);
+  const right = cluster( 9, GPL, 'NovaSystem  GPL-3.0', ['persona','ledger','precedent','memory']);
+
+  /* the boundary plane */
+  const planeMat = new THREE.MeshBasicMaterial({
+    color:0xd4c4a8, transparent:true, opacity:.09, side:THREE.DoubleSide
+  });
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 0.1), planeMat);
+  plane.geometry = new THREE.PlaneGeometry(8, 9.5);
+  plane.rotation.y = Math.PI/2;
+  sc.add(plane);
+
+  const edge = new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.PlaneGeometry(8,9.5)),
+    new THREE.LineBasicMaterial({color:LINE, transparent:true, opacity:.45})
+  );
+  edge.rotation.y = Math.PI/2;
+  sc.add(edge);
+
+  const mcp = labelSprite('MCP  arm’s length', '#f3e7d8');
+  mcp.scale.multiplyScalar(1.1);
+  mcp.position.set(0, 6.1, 0);
+  sc.add(mcp);
+
+  const noImport = labelSprite('0 imports cross this line', '#d4c4a8');
+  noImport.scale.multiplyScalar(0.92);
+  noImport.position.set(0, -5.9, 0);
+  sc.add(noImport);
+
+  /* particles crossing the gap, seeded across the whole path */
+  const M = 150;
+  const ppos = new Float32Array(M*3);
+  const t = new Float32Array(M), dir = new Float32Array(M), lane = new Float32Array(M*2);
+  for(let i=0;i<M;i++){
+    t[i] = Math.random();
+    dir[i] = Math.random() < 0.5 ? 1 : -1;
+    lane[i*2]   = (Math.random()-0.5)*5.0;
+    lane[i*2+1] = (Math.random()-0.5)*3.2;
+  }
+  const pg = new THREE.BufferGeometry();
+  pg.setAttribute('position', new THREE.BufferAttribute(ppos,3));
+  const flow = new THREE.Points(pg, new THREE.PointsMaterial({
+    size:0.36, map:dotTexture(), transparent:true, opacity:.95,
+    color:0xffcf9a, depthWrite:false, blending:THREE.AdditiveBlending
+  }));
+  sc.add(flow);
+
+  function placeParticles(){
+    const p = pg.attributes.position.array;
+    for(let i=0;i<M;i++){
+      const u = dir[i] > 0 ? t[i] : 1 - t[i];
+      p[i*3]   = -7.2 + u*14.4;
+      p[i*3+1] = lane[i*2+1] + Math.sin(u*Math.PI)*0.9;
+      p[i*3+2] = lane[i*2];
+    }
+    pg.attributes.position.needsUpdate = true;
+  }
+  placeParticles();
+
+  /* orbit */
+  let drag=false, px=0, py=0, yaw=0, pitch=0, dist=23;
+  cv.addEventListener('pointerdown', e=>{drag=true; px=e.clientX; py=e.clientY; cv.setPointerCapture(e.pointerId);});
+  cv.addEventListener('pointerup',   e=>{drag=false;});
+  cv.addEventListener('pointermove', e=>{
+    if(!drag) return;
+    yaw   += (e.clientX-px)*0.006;
+    pitch += (e.clientY-py)*0.004;
+    pitch = Math.max(-0.5, Math.min(0.95, pitch));
+    px=e.clientX; py=e.clientY;
+  });
+  cv.addEventListener('wheel', e=>{
+    e.preventDefault();
+    dist = Math.max(16, Math.min(46, dist + Math.sign(e.deltaY)*1.6));
+  }, {passive:false});
+
+  function size(){
+    const w = cv.clientWidth, h = cv.clientHeight;
+    if(!w||!h) return;
+    r.setSize(w,h,false);
+    cam.aspect = w/h; cam.updateProjectionMatrix();
+  }
+  addEventListener('resize', size); size();
+
+  let auto = 0;
+  r.setAnimationLoop(()=>{
+    if(!reduced){
+      auto += 0.0016;
+      for(let i=0;i<M;i++){
+        t[i] += 0.0032;
+        if(t[i] > 1) t[i] -= 1;
+      }
+      placeParticles();
+      left.ring.rotation.z  += 0.004;
+      right.ring.rotation.z -= 0.004;
+    }
+    const a = yaw + auto;
+    const h = 9 + pitch*10;
+    cam.position.set(Math.sin(a)*dist, h, Math.cos(a)*dist);
+    cam.lookAt(0,0,0);
+    r.render(sc,cam);
+  });
+})();
+
+/* ---------- reveal ---------- */
+(function reveal(){
+  const els = document.querySelectorAll('.rv');
+  if(!('IntersectionObserver' in window)){
+    els.forEach(e=>e.classList.add('in')); return;
+  }
+  const io = new IntersectionObserver(es=>{
+    es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, {threshold:0.12, rootMargin:'0px 0px -40px 0px'});
+  els.forEach(e=>io.observe(e));
+})();
+</script>
+</body>
+</html>

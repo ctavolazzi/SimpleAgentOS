@@ -12,8 +12,19 @@ from pathlib import Path
 from typing import Optional
 
 CODE_ROOT = Path.home() / "Code"
+VAULT_ROOT = Path.home() / "Documents" / "Personal-Remote-Vault"
 DEVLOG = CODE_ROOT / "_work_efforts" / "devlog.md"
-WE_DIR = CODE_ROOT / "_work_efforts" / "10-19_development"
+
+# Work efforts are written to TWO trees and neither is authoritative yet:
+#   code side  ~/Code/_work_efforts/            (older, hand-authored)
+#   vault side ~/…/Personal-Remote-Vault/_work_efforts_/  (agents + plan rollover)
+# Scanning only the code side made the note report a 36-day-old effort as the
+# newest while 11 had been created the previous day. Scan both, merge by mtime.
+WE_DIRS = [
+    ("code", CODE_ROOT / "_work_efforts" / "10-19_development"),
+    ("vault", VAULT_ROOT / "_work_efforts_" / "10-19_development"),
+]
+WE_DIR = WE_DIRS[0][1]  # retained: existing callers import this name
 
 
 def _devlog_headline() -> str:
@@ -32,15 +43,23 @@ def _devlog_headline() -> str:
 
 
 def _active_work_efforts(limit: int = 3) -> list:
-    """Most recently touched work-effort docs in 10-19_development."""
-    if not WE_DIR.is_dir():
-        return []
-    docs = sorted(WE_DIR.glob("**/*.md"),
-                  key=lambda p: p.stat().st_mtime, reverse=True)
+    """Most recently touched work-effort docs across both trees, newest first."""
+    docs = []
+    for source, root in WE_DIRS:
+        if not root.is_dir():
+            continue
+        for p in root.glob("**/*.md"):
+            try:
+                docs.append((p.stat().st_mtime, source, p))
+            except OSError:
+                continue
+    docs.sort(key=lambda row: row[0], reverse=True)
     out = []
-    for p in docs[:limit]:
-        age_days = (datetime.now().timestamp() - p.stat().st_mtime) / 86400
-        out.append({"name": p.stem, "age_days": round(age_days, 1)})
+    now = datetime.now().timestamp()
+    for mtime, source, p in docs[:limit]:
+        out.append({"name": p.stem,
+                    "age_days": round((now - mtime) / 86400, 1),
+                    "source": source})
     return out
 
 
@@ -100,7 +119,8 @@ def format_md(lab: dict) -> str:
     if efforts:
         lines.append("**Recent work efforts:**")
         for e in efforts:
-            lines.append(f"- {e['name']} *({e['age_days']}d ago)*")
+            tag = f" · {e['source']}" if e.get("source") else ""
+            lines.append(f"- {e['name']} *({e['age_days']}d ago{tag})*")
         lines.append("")
 
     if not lines:

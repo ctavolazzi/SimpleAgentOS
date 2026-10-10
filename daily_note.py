@@ -9,6 +9,7 @@ Sections are identified by their markdown ## headers. Content between
 one header and the next belongs to that section.
 """
 
+import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -27,7 +28,15 @@ except ImportError:
 
 # ── Paths ──────────────────────────────────────────────────────────────
 
-VAULT_DIR = Path.home() / "Documents" / "Personal-Remote-Vault"
+# VAULT_DIR is overridable by environment because the shell hook
+# (~/.claude/hooks/live-feed.sh) already honours $VAULT_DIR when it chooses
+# where to append feed rows. Until this matched, setting that variable made the
+# hook write to one tree while every Python reader looked in another, and the
+# feed simply went quiet with nothing reporting an error. The default is
+# unchanged, so an unset environment behaves exactly as before.
+VAULT_DIR = Path(
+    os.environ.get("VAULT_DIR") or (Path.home() / "Documents" / "Personal-Remote-Vault")
+).expanduser()
 DAILY_NOTES_DIR = VAULT_DIR / "Daily Notes"
 TEMPLATE_PATH = (VAULT_DIR / "System" / "00-09_system_meta" / "02_templates"
                  / "Daily_Note_Template.md")
@@ -374,9 +383,14 @@ def write_section(section: str, content: str, actor: str = "claude",
             # section's trailing separator, which _replace_section preserves
             # rather than writes, so comparing raw would flag every identical
             # rewrite as a failed no-op.
+            # The same goes for the incoming side: a body that ends in its own
+            # rule is stored without it (see _replace_section), so strip it
+            # here too or an identical rewrite of Location or Sitrep is
+            # reported as a write that failed.
             existing_content, _ = _split_trailer(_extract_section(text, header))
+            incoming_content, _ = _split_trailer(content)
             if new_text == text and content.strip() \
-                    and existing_content.strip() != content.strip():
+                    and existing_content.strip() != incoming_content.strip():
                 raise RuntimeError(
                     f"write_section produced no change for '{section}' — refusing to "
                     f"report success on a silent no-op"
@@ -614,11 +628,23 @@ def _replace_section(text: str, header: str, new_body: str) -> str:
 
         def _sub(m):
             _, trailer = _split_trailer(m.group(2))
+            body = new_body
+            # The separator belongs to the note. Where the note supplies one,
+            # drop the body's own closing rule and reset the trailer to a single
+            # rule. Location and Sitrep bodies end in "---"; without this each
+            # write stacked another, and on 2026-10-07 three writes left four
+            # rules in a row under Sitrep. A note that supplies no rule (old
+            # layout, last section) keeps the body exactly as given.
+            if "---" in trailer:
+                body, _ = _split_trailer(new_body)
+                if body and not body.endswith("\n"):
+                    body += "\n"
+                trailer = "\n---\n\n"
             # A section with no trailer at all still needs one blank line, or
             # the next heading is swallowed.
             if not trailer.startswith("\n"):
                 trailer = "\n" + trailer
-            return m.group(1) + new_body + trailer
+            return m.group(1) + body + trailer
 
         # Function replacement so new_body is inserted literally — a raw
         # replacement string chokes on backslashes (e.g. LaTeX in arXiv titles).

@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "id: 3c587019-ca90-425d-979b-cd874a74e98e\nname: Fieldwork researcher\nmode: standard (1 generation)\ndirections: 4\nbody: humanoid\nsize: 32x32px\nstyle: basic shading, selective outline, low detail\nstatus: processing (~2-3 minutes)\n\nhint: get_character(character_id=\"3c587019-ca90-425d-979b-cd874a74e98e\")"
+    }
+  ],
+  "isError": false
+}

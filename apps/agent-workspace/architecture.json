@@ -1,0 +1,128 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "name": "Pixel world",
+      "path": "web/world.js",
+      "description": "Canvas rendering reads saved state and never owns persistence.",
+      "sha256": "56a1ed6332afd33a00d46661ba92ebaa7ccc693a9225451835ea7066cb948c31"
+    },
+    {
+      "name": "Browser controller",
+      "path": "web/app.js",
+      "description": "Forms and simulation commands use the local HTTP host.",
+      "sha256": "5205ee294306d0f20b431556c57894b1afdff92300eb29f9b92bd9a402a2e25a"
+    },
+    {
+      "name": "Memory inspector",
+      "path": "web/insights.js",
+      "description": "Paged journals, evidence links, diagnostics and architecture view.",
+      "sha256": "5102dfa2584faa05af80957033fb053a8a93ec4b2080979498b1aa20ead1d9a7"
+    },
+    {
+      "name": "HTTP host",
+      "path": "server.py",
+      "description": "Loopback-only commands, simulation lease and optional telemetry worker.",
+      "sha256": "ead1fa599824932481ac843335ad8fb6abbd757912f815c44bf15937fc531141"
+    },
+    {
+      "name": "Persistent workspace",
+      "path": "store.py",
+      "description": "SQLite transactions preserve state, attributed journals, checkpoints and diagnostic acknowledgements.",
+      "sha256": "5420fa771a398196540baabe4b7619cdfa32e95af1f45a7f49891a2598ff64e8"
+    },
+    {
+      "name": "Evidence gate",
+      "path": "evidence.py",
+      "description": "Requires a nonempty set of this agent\u2019s recorded observations; does not judge their truth.",
+      "sha256": "ea1571caecd4b139bc689474c5fa53bb0b0b56cbfdb8746559b2e0b4cce8939d"
+    },
+    {
+      "name": "Telemetry adapter",
+      "path": "telemetry.py",
+      "description": "Optional bounded HTTP forwarding to Wiretap. A failed response remains pending.",
+      "sha256": "c49468540e659d60d576e24753868364074be60bf8187b223db5cc333a9872a5"
+    },
+    {
+      "name": "Living simulation",
+      "path": "simulation.py",
+      "description": "Saved deterministic policies: observation, field-radio exchange, plans, resource work, weather and harvests.",
+      "sha256": "06307b8e7f3023c05489c8630a6d795789905e704f5a1d7d47deeaf4cb09b539"
+    },
+    {
+      "name": "Versioned pixel art",
+      "path": "art/manifest.json",
+      "description": "Aseprite-authored crops and animated pump, plus PixelLab directional researcher and water tank; locally bundled and hash-verified.",
+      "sha256": "df08c54c63fd5e446c80c85c2c3c695ee396e06652de4c387bf98559e78b7607"
+    },
+    {
+      "name": "Experiment comparison",
+      "path": "comparison.py",
+      "description": "Read-only metric and journal differences against an eligible saved checkpoint; entry IDs retain same-tick interventions.",
+      "sha256": "c4d4b4fb01fb26bd19c7f6c82c4b3482d31b9b3ed49f9bd814df61701a2db1cd"
+    },
+    {
+      "name": "Experiment review UI",
+      "path": "web/experiments.js",
+      "description": "Named checkpoint creation, baseline selection, snapshot comparison and JSON download.",
+      "sha256": "58a9c349e9878de18d071bb1b3151eddd0659d6d0e7809cd37c05f7782385202"
+    }
+  ],
+  "edges": [
+    {
+      "from": "Browser controller",
+      "to": "HTTP host",
+      "label": "commands and state"
+    },
+    {
+      "from": "HTTP host",
+      "to": "Persistent workspace",
+      "label": "transactional commands"
+    },
+    {
+      "from": "Memory inspector",
+      "to": "HTTP host",
+      "label": "read paginated journals"
+    },
+    {
+      "from": "Persistent workspace",
+      "to": "Evidence gate",
+      "label": "validate observation references"
+    },
+    {
+      "from": "HTTP host",
+      "to": "Telemetry adapter",
+      "label": "optional background forwarding"
+    },
+    {
+      "from": "Browser controller",
+      "to": "Pixel world",
+      "label": "render saved state"
+    },
+    {
+      "from": "Persistent workspace",
+      "to": "Living simulation",
+      "label": "advance one tick in a database transaction"
+    },
+    {
+      "from": "Living simulation",
+      "to": "Persistent workspace",
+      "label": "persist causal events with resource outcomes"
+    },
+    {
+      "from": "Pixel world",
+      "to": "Versioned pixel art",
+      "label": "load saved art version with procedural fallback"
+    },
+    {
+      "from": "Persistent workspace",
+      "to": "Experiment comparison",
+      "label": "consistent baseline and current-state snapshot"
+    },
+    {
+      "from": "Experiment review UI",
+      "to": "HTTP host",
+      "label": "read comparison and explicitly save named checkpoint"
+    }
+  ]
+}

@@ -33,6 +33,7 @@ Add --dry-run to any of the above to skip the note write.
 """
 
 import json
+import os
 import re
 import sys
 from datetime import datetime
@@ -89,8 +90,22 @@ def state_path(date: Optional[str] = None) -> Path:
     return FEED_ROOT / date[:7] / f"{date}.state.json"
 
 
+def agent_name(explicit: str = "") -> str:
+    """Which agent is writing this row.
+
+    Several agent runtimes share one feed (Claude Code, Codex, anything else
+    wired in). A 4-char session id tells you the rows came from different
+    tabs; it does not tell you which tool produced them. This does.
+
+    Resolution order: explicit argument, then DAILY_NOTE_AGENT, then empty.
+    Empty is not an error: a single-agent feed needs no label, and the
+    renderer only shows labels once more than one agent is actually present.
+    """
+    return (explicit or os.environ.get("DAILY_NOTE_AGENT", "")).strip()[:12]
+
+
 def append(kind: str, detail: str = "", date: Optional[str] = None,
-           sid: str = "") -> None:
+           sid: str = "", agent: str = "") -> None:
     """Append one event to the feed file. Never raises on a full disk or a
     missing directory — a dropped feed row must not break the caller."""
     try:
@@ -100,6 +115,7 @@ def append(kind: str, detail: str = "", date: Optional[str] = None,
             "ts": datetime.now().strftime("%H:%M:%S"),
             "kind": kind,
             "sid": sid,
+            "agent": agent_name(agent),
             "detail": detail,
         }
         with path.open("a", encoding="utf-8") as fh:
@@ -199,9 +215,11 @@ def _collapse(events: list) -> list:
     for ev in events:
         kind = ev.get("kind", "?")
         sid = ev.get("sid", "")
+        agent = ev.get("agent", "")
         prev = rows[-1] if rows else None
         if (prev and kind in QUIET_KINDS
-                and prev["kind"] == kind and prev["sid"] == sid):
+                and prev["kind"] == kind and prev["sid"] == sid
+                and prev.get("agent", "") == agent):
             prev["count"] += 1
             prev["ts"] = ev.get("ts", prev["ts"])
             prev["detail"] = ev.get("detail", "")
@@ -210,6 +228,7 @@ def _collapse(events: list) -> list:
                 "ts": ev.get("ts", ""),
                 "kind": kind,
                 "sid": sid,
+                "agent": agent,
                 "detail": ev.get("detail", ""),
                 "count": 1,
             })
@@ -246,13 +265,31 @@ def render_markdown(date: Optional[str] = None) -> str:
     # view stays clean.
     sessions = {r["sid"] for r in shown if r.get("sid")}
     tag_sessions = len(sessions) > 1
+    # Agent label appears only once a second agent is actually in the window,
+    # for the same reason session tags do: a solo feed needs no disambiguation.
+    #
+    # Unlabelled rows count as their own bucket on purpose. Writers adopt the
+    # agent field at different times: Claude's hook may be emitting it while a
+    # newly wired runtime is not, or the reverse. Counting only non-empty
+    # labels means a feed of "claude" plus unlabelled rows looks like one agent
+    # and renders no tags at all, which is exactly the case the field exists to
+    # disambiguate. Measured 2026-09-20: that mixed state labelled nothing.
+    agents = {r.get("agent", "") for r in shown}
+    tag_agents = len(agents) > 1
 
     for row in shown:
         icon = ICONS.get(row["kind"], "•")
         detail = _format_detail(row["kind"], row["detail"])
         count = f" ×{row['count']}" if row["count"] > 1 else ""
         body = f" `{detail}`" if detail else ""
-        tag = f" ⟨{row['sid']}⟩" if tag_sessions and row.get("sid") else ""
+        parts = []
+        if tag_agents:
+            # "?" rather than nothing: in a mixed feed an unlabelled row is a
+            # real distinction worth showing, not an absence worth hiding.
+            parts.append(row.get("agent") or "?")
+        if tag_sessions and row.get("sid"):
+            parts.append(row["sid"])
+        tag = f" ⟨{':'.join(parts)}⟩" if parts else ""
         lines.append(f"> `{row['ts']}`{tag} {icon} **{row['kind']}{count}**{body}")
 
     if hidden > 0:
@@ -344,8 +381,9 @@ def record_payload(payload: dict) -> Optional[dict]:
               or ti.get("url")
               or ti.get("prompt")
               or "")
-    append(kind, str(detail), sid=sid)
-    return {"kind": kind, "detail": str(detail), "sid": sid}
+    agent = agent_name(str(payload.get("agent") or ""))
+    append(kind, str(detail), sid=sid, agent=agent)
+    return {"kind": kind, "detail": str(detail), "sid": sid, "agent": agent}
 
 
 # ── CLI ────────────────────────────────────────────────────────────────
@@ -360,6 +398,9 @@ def main(argv: list) -> int:
     ap.add_argument("--focus", help="set the headline, then render")
     ap.add_argument("--show", action="store_true",
                     help="print the rendered markdown without writing")
+    ap.add_argument("--agent", default="",
+                    help="agent label for rows written by this call "
+                         "(defaults to $DAILY_NOTE_AGENT)")
     ap.add_argument("--date", help="YYYY-MM-DD (defaults to today)")
     ap.add_argument("--dry-run", action="store_true", help="never write the note")
     ap.add_argument("--json", action="store_true", help="JSON output")
@@ -376,7 +417,7 @@ def main(argv: list) -> int:
         set_focus(args.focus, args.date)
 
     if args.note:
-        append("note", args.note, args.date)
+        append("note", args.note, args.date, agent=args.agent)
 
     if args.show:
         print(render_markdown(args.date), end="")

@@ -1,0 +1,35 @@
+test_http_guards_and_valid_control (test_integrations.IntegrationBrowserTests.test_http_guards_and_valid_control) ... ok
+test_memory_decision_diagnostics_and_map (test_integrations.IntegrationBrowserTests.test_memory_decision_diagnostics_and_map) ... ok
+test_empty_and_foreign_evidence_rejected_without_partial_write (test_integrations.IntegrationPersistenceTests.test_empty_and_foreign_evidence_rejected_without_partial_write) ... ok
+test_empty_population_gate (test_integrations.IntegrationPersistenceTests.test_empty_population_gate) ... ok
+test_outbox_recovers_after_reopen (test_integrations.IntegrationPersistenceTests.test_outbox_recovers_after_reopen) ... ok
+test_outbox_rejection_retained_and_concurrent_arrival_survives (test_integrations.IntegrationPersistenceTests.test_outbox_rejection_retained_and_concurrent_arrival_survives) ... /Users/ctavolazzi/.pyenv/versions/3.14.3/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 400: 'validation'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+ok
+test_quiet_agent_pagination_and_literal_search (test_integrations.IntegrationPersistenceTests.test_quiet_agent_pagination_and_literal_search) ... ok
+test_saved_places_drive_movement (test_integrations.IntegrationPersistenceTests.test_saved_places_drive_movement) ... ok
+test_supported_decision_and_checkpoint_keep_provenance (test_integrations.IntegrationPersistenceTests.test_supported_decision_and_checkpoint_keep_provenance) ... ok
+test_live_simulation_and_two_tab_control (test_simulation.SimulationBrowserTests.test_live_simulation_and_two_tab_control) ... ok
+test_observer_reads_do_not_renew_lease (test_simulation.SimulationBrowserTests.test_observer_reads_do_not_renew_lease) ... ok
+test_ready_made_scenario_and_causal_trace (test_simulation.SimulationBrowserTests.test_ready_made_scenario_and_causal_trace) ... ok
+test_versioned_assets_served (test_simulation.SimulationBrowserTests.test_versioned_assets_served) ... ok
+test_art_manifest_matches_real_assets (test_simulation.SimulationTests.test_art_manifest_matches_real_assets) ... ok
+test_evidence_changes_engineer_choice (test_simulation.SimulationTests.test_evidence_changes_engineer_choice) ... ok
+test_exchange_redirects_engineer (test_simulation.SimulationTests.test_exchange_redirects_engineer) ... ok
+test_failed_outcome_rolls_back_world_and_journal (test_simulation.SimulationTests.test_failed_outcome_rolls_back_world_and_journal) ... ok
+test_full_loop_repairs_and_harvests (test_simulation.SimulationTests.test_full_loop_repairs_and_harvests) ... ok
+test_intervention_changes_branch_and_retry_is_idempotent (test_simulation.SimulationTests.test_intervention_changes_branch_and_retry_is_idempotent) ... ok
+test_restore_continues_equivalent_resources (test_simulation.SimulationTests.test_restore_continues_equivalent_resources) ... ok
+test_guided_create_observe_checkpoint_restore (test_workspace.BrowserTests.test_guided_create_observe_checkpoint_restore) ... ok
+test_mobile_skip_and_saved_workspace (test_workspace.BrowserTests.test_mobile_skip_and_saved_workspace) ... ok
+test_resume_pause_and_reload (test_workspace.BrowserTests.test_resume_pause_and_reload) ... ok
+test_checkpoint_preserves_journal_and_state (test_workspace.PersistenceTests.test_checkpoint_preserves_journal_and_state) ... ok
+test_edit_preserves_identity_and_records_revision (test_workspace.PersistenceTests.test_edit_preserves_identity_and_records_revision) ... ok
+test_invalid_agent_and_failed_entry_roll_back (test_workspace.PersistenceTests.test_invalid_agent_and_failed_entry_roll_back) ... ok
+test_journal_rejects_mutation (test_workspace.PersistenceTests.test_journal_rejects_mutation) ... ok
+test_profile_survives_workspace_branch_and_new_workspace (test_workspace.PersistenceTests.test_profile_survives_workspace_branch_and_new_workspace) ... ok
+
+----------------------------------------------------------------------
+Ran 28 tests in 27.477s
+
+OK

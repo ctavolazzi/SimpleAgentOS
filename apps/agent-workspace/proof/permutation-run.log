@@ -1,0 +1,55 @@
+Negative control: negative resource detected
+Policy cases: 1000
+Policy cases: 2000
+Policy cases: 3000
+Policy cases: 4000
+Policy cases: 5000
+Policy cases: 6000
+Policy cases: 7000
+Policy cases: 8000
+Policy cases: 9000
+Storage sequences: 6
+Storage sequences: 12
+Storage sequences: 18
+Storage sequences: 24
+Storage sequences: 30
+Storage sequences: 36
+{
+  "cases": 9720,
+  "ticks": 4665600,
+  "seconds": 69.61,
+  "failures": [],
+  "no_harvest": 4340,
+  "balanced_cases": 2160,
+  "balanced_no_harvest": 304,
+  "balanced_order_groups": 360,
+  "order_sensitive_harvest_groups": 4,
+  "by_intervention": {
+    "none": {
+      "cases": 432,
+      "no_harvest": 72,
+      "harvests": 624
+    },
+    "rain": {
+      "cases": 432,
+      "no_harvest": 0,
+      "harvests": 792
+    },
+    "drought": {
+      "cases": 432,
+      "no_harvest": 136,
+      "harvests": 296
+    },
+    "break_pump": {
+      "cases": 432,
+      "no_harvest": 72,
+      "harvests": 624
+    },
+    "timber": {
+      "cases": 432,
+      "no_harvest": 24,
+      "harvests": 720
+    }
+  }
+}
+Results: /Users/ctavolazzi/Code/_experiments/SimpleAgentOS/apps/agent-workspace/proof/permutations

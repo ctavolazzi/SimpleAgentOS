@@ -164,11 +164,26 @@ def _fetch_weather(force: bool = False) -> Tuple[dict, str]:
         return {}, f"failed (no cache) ({type(e).__name__}): {e}"
 
 
+def _news_is_renderable(n) -> bool:
+    """True when the note's own formatter can render this news payload.
+
+    The cache is a file on disk and anything can end up in it. From 2026-09-20 to
+    2026-10-07 a test wrote title-only stories there on every suite run; they were
+    served as "cached" and `format_news_md` raised KeyError('link') in the note.
+    Asking the formatter itself keeps this check from drifting away from it.
+    """
+    try:
+        local_news.format_news_md(n)
+        return True
+    except Exception:
+        return False
+
+
 def _fetch_news(force: bool = False) -> Tuple[dict, str]:
     """Fetch or cache news."""
     if not force:
         cached = _read_cache("news", TTL_NEWS)
-        if cached:
+        if cached and _news_is_renderable(cached):
             return cached, "cached"
     try:
         n = local_news.fetch("Chico California", limit=3)
@@ -182,7 +197,7 @@ def _fetch_news(force: bool = False) -> Tuple[dict, str]:
         return n, f"ok ({count} stories)"
     except Exception as e:
         cached = _read_cache("news", float('inf'))
-        if cached:
+        if cached and _news_is_renderable(cached):
             return cached, f"failed (using stale)"
         return {}, f"failed (no cache) ({type(e).__name__}): {e}"
 
@@ -695,7 +710,9 @@ def _scaffold_journal(date_str: str, today_label: str, dt_ctx: dict,
         return True, "skipped (already exists)"
     journal_dir.mkdir(parents=True, exist_ok=True)
 
-    ts = datetime.now().strftime("%H:%M UTC")
+    # Local time with its own zone name. This used to append a literal "UTC"
+    # to the local clock, so a 19:29 Pacific start read as "19:29 UTC".
+    ts = datetime.now().astimezone().strftime("%H:%M %Z").strip()
     moon = dt_ctx.get("moon_phase", "")
     week = dt_ctx.get("week_number", "")
     doy = dt_ctx.get("day_of_year", "")
@@ -1186,8 +1203,10 @@ def main():
             plan_result = plan_rollover.create_today_from_rollover(days=7)
             if plan_result.get("created"):
                 seeds = plan_result.get("seed_count", 0)
-                print(f"  ✓ plan created — {seeds} items rolled over")
-                _tap(f"phase 3 · plan created, {seeds} items rolled over")
+                rolled = plan_result.get("rollover_status",
+                                         f"{seeds} items rolled over")
+                print(f"  ✓ plan created — {rolled}")
+                _tap(f"phase 3 · plan created, {rolled}")
             else:
                 print(f"  · plan already exists ({plan_result.get('status', 'ok')})")
                 _tap("phase 3 · plan already exists")

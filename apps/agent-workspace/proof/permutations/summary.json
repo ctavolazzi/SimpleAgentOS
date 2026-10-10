@@ -1,0 +1,537 @@
+{
+  "python": "3.14.3",
+  "platform": "macOS-12.7.6-x86_64-i386-64bit-Mach-O",
+  "source_hashes": {
+    "simulation.py": "06307b8e7f3023c05489c8630a6d795789905e704f5a1d7d47deeaf4cb09b539",
+    "store.py": "5420fa771a398196540baabe4b7619cdfa32e95af1f45a7f49891a2598ff64e8",
+    "comparison.py": "c4d4b4fb01fb26bd19c7f6c82c4b3482d31b9b3ed49f9bd814df61701a2db1cd",
+    "web/app.js": "5205ee294306d0f20b431556c57894b1afdff92300eb29f9b92bd9a402a2e25a",
+    "web/insights.js": "5102dfa2584faa05af80957033fb053a8a93ec4b2080979498b1aa20ead1d9a7",
+    "web/experiments.js": "58a9c349e9878de18d071bb1b3151eddd0659d6d0e7809cd37c05f7782385202"
+  },
+  "policy": {
+    "cases": 9720,
+    "ticks": 4665600,
+    "seconds": 69.61,
+    "failures": [],
+    "no_harvest": 4340,
+    "balanced_cases": 2160,
+    "balanced_no_harvest": 304,
+    "balanced_order_groups": 360,
+    "order_sensitive_harvest_groups": 4,
+    "order_example": [
+      {
+        "case": 1932,
+        "roles": [
+          "scout",
+          "engineer",
+          "gardener"
+        ],
+        "water": 5,
+        "wood": 0,
+        "food": 0,
+        "moisture": 100,
+        "intervention": "drought",
+        "harvests": 0,
+        "repairs": 0,
+        "food_end": 0,
+        "events": 307,
+        "outcomes": 9,
+        "exchanges": 142,
+        "tasks": 80
+      },
+      {
+        "case": 2652,
+        "roles": [
+          "scout",
+          "gardener",
+          "engineer"
+        ],
+        "water": 5,
+        "wood": 0,
+        "food": 0,
+        "moisture": 100,
+        "intervention": "drought",
+        "harvests": 0,
+        "repairs": 0,
+        "food_end": 0,
+        "events": 307,
+        "outcomes": 9,
+        "exchanges": 142,
+        "tasks": 80
+      },
+      {
+        "case": 4092,
+        "roles": [
+          "engineer",
+          "scout",
+          "gardener"
+        ],
+        "water": 5,
+        "wood": 0,
+        "food": 0,
+        "moisture": 100,
+        "intervention": "drought",
+        "harvests": 0,
+        "repairs": 0,
+        "food_end": 0,
+        "events": 307,
+        "outcomes": 9,
+        "exchanges": 142,
+        "tasks": 80
+      },
+      {
+        "case": 5532,
+        "roles": [
+          "engineer",
+          "gardener",
+          "scout"
+        ],
+        "water": 5,
+        "wood": 0,
+        "food": 0,
+        "moisture": 100,
+        "intervention": "drought",
+        "harvests": 0,
+        "repairs": 0,
+        "food_end": 0,
+        "events": 307,
+        "outcomes": 9,
+        "exchanges": 142,
+        "tasks": 80
+      },
+      {
+        "case": 6972,
+        "roles": [
+          "gardener",
+          "scout",
+          "engineer"
+        ],
+        "water": 5,
+        "wood": 0,
+        "food": 0,
+        "moisture": 100,
+        "intervention": "drought",
+        "harvests": 1,
+        "repairs": 0,
+        "food_end": 3,
+        "events": 305,
+        "outcomes": 10,
+        "exchanges": 140,
+        "tasks": 80
+      },
+      {
+        "case": 7692,
+        "roles": [
+          "gardener",
+          "engineer",
+          "scout"
+        ],
+        "water": 5,
+        "wood": 0,
+        "food": 0,
+        "moisture": 100,
+        "intervention": "drought",
+        "harvests": 1,
+        "repairs": 0,
+        "food_end": 3,
+        "events": 305,
+        "outcomes": 10,
+        "exchanges": 140,
+        "tasks": 80
+      }
+    ],
+    "balanced_stall_examples": [
+      {
+        "case": 1800,
+        "roles": [
+          "scout",
+          "engineer",
+          "gardener"
+        ],
+        "water": 0,
+        "wood": 0,
+        "food": 0,
+        "moisture": 0,
+        "intervention": "none",
+        "harvests": 0,
+        "repairs": 0,
+        "food_end": 0,
+        "events": 311,
+        "outcomes": 7,
+        "exchanges": 146,
+        "tasks": 80
+      },
+      {
+        "case": 1802,
+        "roles": [
+          "scout",
+          "engineer",
+          "gardener"
+        ],
+        "water": 0,
+        "wood": 0,
+        "food": 0,
+        "moisture": 0,
+        "intervention": "drought",
+        "harvests": 0,
+        "repairs": 0,
+        "food_end": 0,
+        "events": 311,
+        "outcomes": 7,
+        "exchanges": 146,
+        "tasks": 80
+      },
+      {
+        "case": 1803,
+        "roles": [
+          "scout",
+          "engineer",
+          "gardener"
+        ],
+        "water": 0,
+        "wood": 0,
+        "food": 0,
+        "moisture": 0,
+        "intervention": "break_pump",
+        "harvests": 0,
+        "repairs": 0,
+        "food_end": 0,
+        "events": 311,
+        "outcomes": 7,
+        "exchanges": 146,
+        "tasks": 80
+      },
+      {
+        "case": 1804,
+        "roles": [
+          "scout",
+          "engineer",
+          "gardener"
+        ],
+        "water": 0,
+        "wood": 0,
+        "food": 0,
+        "moisture": 0,
+        "intervention": "timber",
+        "harvests": 0,
+        "repairs": 1,
+        "food_end": 0,
+        "events": 261,
+        "outcomes": 22,
+        "exchanges": 106,
+        "tasks": 75
+      },
+      {
+        "case": 1805,
+        "roles": [
+          "scout",
+          "engineer",
+          "gardener"
+        ],
+        "water": 0,
+        "wood": 0,
+        "food": 0,
+        "moisture": 35,
+        "intervention": "none",
+        "harvests": 0,
+        "repairs": 0,
+        "food_end": 0,
+        "events": 311,
+        "outcomes": 7,
+        "exchanges": 146,
+        "tasks": 80
+      },
+      {
+        "case": 1807,
+        "roles": [
+          "scout",
+          "engineer",
+          "gardener"
+        ],
+        "water": 0,
+        "wood": 0,
+        "food": 0,
+        "moisture": 35,
+        "intervention": "drought",
+        "harvests": 0,
+        "repairs": 0,
+        "food_end": 0,
+        "events": 311,
+        "outcomes": 7,
+        "exchanges": 146,
+        "tasks": 80
+      }
+    ],
+    "max_events": {
+      "case": 1455,
+      "roles": [
+        "scout",
+        "engineer",
+        "engineer"
+      ],
+      "water": 0,
+      "wood": 0,
+      "food": 4,
+      "moisture": 0,
+      "intervention": "none",
+      "harvests": 0,
+      "repairs": 0,
+      "food_end": 0,
+      "events": 379,
+      "outcomes": 8,
+      "exchanges": 178,
+      "tasks": 97
+    },
+    "by_intervention": {
+      "none": {
+        "cases": 432,
+        "no_harvest": 72,
+        "harvests": 624
+      },
+      "rain": {
+        "cases": 432,
+        "no_harvest": 0,
+        "harvests": 792
+      },
+      "drought": {
+        "cases": 432,
+        "no_harvest": 136,
+        "harvests": 296
+      },
+      "break_pump": {
+        "cases": 432,
+        "no_harvest": 72,
+        "harvests": 624
+      },
+      "timber": {
+        "cases": 432,
+        "no_harvest": 24,
+        "harvests": 720
+      }
+    }
+  },
+  "storage": {
+    "cases": 36,
+    "failures": [],
+    "results": [
+      {
+        "seed": 0,
+        "agents": 1,
+        "commands": 160,
+        "entries": 12
+      },
+      {
+        "seed": 1,
+        "agents": 3,
+        "commands": 160,
+        "entries": 94
+      },
+      {
+        "seed": 2,
+        "agents": 6,
+        "commands": 160,
+        "entries": 247
+      },
+      {
+        "seed": 3,
+        "agents": 12,
+        "commands": 160,
+        "entries": 822
+      },
+      {
+        "seed": 4,
+        "agents": 1,
+        "commands": 160,
+        "entries": 12
+      },
+      {
+        "seed": 5,
+        "agents": 3,
+        "commands": 160,
+        "entries": 90
+      },
+      {
+        "seed": 6,
+        "agents": 6,
+        "commands": 160,
+        "entries": 270
+      },
+      {
+        "seed": 7,
+        "agents": 12,
+        "commands": 160,
+        "entries": 831
+      },
+      {
+        "seed": 8,
+        "agents": 1,
+        "commands": 160,
+        "entries": 12
+      },
+      {
+        "seed": 9,
+        "agents": 3,
+        "commands": 160,
+        "entries": 90
+      },
+      {
+        "seed": 10,
+        "agents": 6,
+        "commands": 160,
+        "entries": 247
+      },
+      {
+        "seed": 11,
+        "agents": 12,
+        "commands": 160,
+        "entries": 739
+      },
+      {
+        "seed": 12,
+        "agents": 1,
+        "commands": 160,
+        "entries": 12
+      },
+      {
+        "seed": 13,
+        "agents": 3,
+        "commands": 160,
+        "entries": 90
+      },
+      {
+        "seed": 14,
+        "agents": 6,
+        "commands": 160,
+        "entries": 262
+      },
+      {
+        "seed": 15,
+        "agents": 12,
+        "commands": 160,
+        "entries": 739
+      },
+      {
+        "seed": 16,
+        "agents": 1,
+        "commands": 160,
+        "entries": 12
+      },
+      {
+        "seed": 17,
+        "agents": 3,
+        "commands": 160,
+        "entries": 90
+      },
+      {
+        "seed": 18,
+        "agents": 6,
+        "commands": 160,
+        "entries": 248
+      },
+      {
+        "seed": 19,
+        "agents": 12,
+        "commands": 160,
+        "entries": 800
+      },
+      {
+        "seed": 20,
+        "agents": 1,
+        "commands": 160,
+        "entries": 12
+      },
+      {
+        "seed": 21,
+        "agents": 3,
+        "commands": 160,
+        "entries": 92
+      },
+      {
+        "seed": 22,
+        "agents": 6,
+        "commands": 160,
+        "entries": 248
+      },
+      {
+        "seed": 23,
+        "agents": 12,
+        "commands": 160,
+        "entries": 853
+      },
+      {
+        "seed": 24,
+        "agents": 1,
+        "commands": 160,
+        "entries": 12
+      },
+      {
+        "seed": 25,
+        "agents": 3,
+        "commands": 160,
+        "entries": 92
+      },
+      {
+        "seed": 26,
+        "agents": 6,
+        "commands": 160,
+        "entries": 248
+      },
+      {
+        "seed": 27,
+        "agents": 12,
+        "commands": 160,
+        "entries": 831
+      },
+      {
+        "seed": 28,
+        "agents": 1,
+        "commands": 160,
+        "entries": 12
+      },
+      {
+        "seed": 29,
+        "agents": 3,
+        "commands": 160,
+        "entries": 96
+      },
+      {
+        "seed": 30,
+        "agents": 6,
+        "commands": 160,
+        "entries": 267
+      },
+      {
+        "seed": 31,
+        "agents": 12,
+        "commands": 160,
+        "entries": 736
+      },
+      {
+        "seed": 32,
+        "agents": 1,
+        "commands": 160,
+        "entries": 12
+      },
+      {
+        "seed": 33,
+        "agents": 3,
+        "commands": 160,
+        "entries": 90
+      },
+      {
+        "seed": 34,
+        "agents": 6,
+        "commands": 160,
+        "entries": 265
+      },
+      {
+        "seed": 35,
+        "agents": 12,
+        "commands": 160,
+        "entries": 1014
+      }
+    ]
+  },
+  "elapsed_seconds": 108.04
+}

@@ -1,0 +1,1776 @@
+{
+  "http": [
+    {
+      "action": "add_agent",
+      "body": {
+        "name": null,
+        "personality": "Probe"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": "Probe",
+        "personality": null
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "set_role",
+      "body": {
+        "agent_id": "7d20c9a9-cc21-45b3-ac15-8283ba664325",
+        "role": null
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "intervene",
+      "body": {
+        "intervention": null
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "decision",
+      "body": {
+        "agent_id": "7d20c9a9-cc21-45b3-ac15-8283ba664325",
+        "text": "Probe",
+        "evidence_ids": null
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": [],
+        "personality": "Probe"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": "Probe",
+        "personality": []
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "set_role",
+      "body": {
+        "agent_id": "7d20c9a9-cc21-45b3-ac15-8283ba664325",
+        "role": []
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "intervene",
+      "body": {
+        "intervention": []
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "decision",
+      "body": {
+        "agent_id": "7d20c9a9-cc21-45b3-ac15-8283ba664325",
+        "text": "Probe",
+        "evidence_ids": []
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": {},
+        "personality": "Probe"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": "Probe",
+        "personality": {}
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "set_role",
+      "body": {
+        "agent_id": "7d20c9a9-cc21-45b3-ac15-8283ba664325",
+        "role": {}
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "intervene",
+      "body": {
+        "intervention": {}
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "decision",
+      "body": {
+        "agent_id": "7d20c9a9-cc21-45b3-ac15-8283ba664325",
+        "text": "Probe",
+        "evidence_ids": {}
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": 0,
+        "personality": "Probe"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": "Probe",
+        "personality": 0
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "set_role",
+      "body": {
+        "agent_id": "7d20c9a9-cc21-45b3-ac15-8283ba664325",
+        "role": 0
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "intervene",
+      "body": {
+        "intervention": 0
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "decision",
+      "body": {
+        "agent_id": "7d20c9a9-cc21-45b3-ac15-8283ba664325",
+        "text": "Probe",
+        "evidence_ids": 0
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": true,
+        "personality": "Probe"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": "Probe",
+        "personality": true
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "set_role",
+      "body": {
+        "agent_id": "7d20c9a9-cc21-45b3-ac15-8283ba664325",
+        "role": true
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "intervene",
+      "body": {
+        "intervention": true
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "decision",
+      "body": {
+        "agent_id": "7d20c9a9-cc21-45b3-ac15-8283ba664325",
+        "text": "Probe",
+        "evidence_ids": true
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": "",
+        "personality": "Probe"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": "Probe",
+        "personality": ""
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "set_role",
+      "body": {
+        "agent_id": "7d20c9a9-cc21-45b3-ac15-8283ba664325",
+        "role": ""
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "intervene",
+      "body": {
+        "intervention": ""
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "decision",
+      "body": {
+        "agent_id": "7d20c9a9-cc21-45b3-ac15-8283ba664325",
+        "text": "Probe",
+        "evidence_ids": ""
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": "   ",
+        "personality": "Probe"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": "Probe",
+        "personality": "   "
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "set_role",
+      "body": {
+        "agent_id": "7d20c9a9-cc21-45b3-ac15-8283ba664325",
+        "role": "   "
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "intervene",
+      "body": {
+        "intervention": "   "
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "decision",
+      "body": {
+        "agent_id": "7d20c9a9-cc21-45b3-ac15-8283ba664325",
+        "text": "Probe",
+        "evidence_ids": "   "
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "personality": "Probe"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": "Probe",
+        "personality": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "set_role",
+      "body": {
+        "agent_id": "7d20c9a9-cc21-45b3-ac15-8283ba664325",
+        "role": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "intervene",
+      "body": {
+        "intervention": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "decision",
+      "body": {
+        "agent_id": "7d20c9a9-cc21-45b3-ac15-8283ba664325",
+        "text": "Probe",
+        "evidence_ids": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b0c7f059-f12f-4c21-a384-fc763e7cf731",
+        "running": null
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b0c7f059-f12f-4c21-a384-fc763e7cf731",
+        "running": []
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b0c7f059-f12f-4c21-a384-fc763e7cf731",
+        "running": {}
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b0c7f059-f12f-4c21-a384-fc763e7cf731",
+        "running": 0
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b0c7f059-f12f-4c21-a384-fc763e7cf731",
+        "running": 1
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b0c7f059-f12f-4c21-a384-fc763e7cf731",
+        "running": "false"
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b0c7f059-f12f-4c21-a384-fc763e7cf731",
+        "running": "true"
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b0c7f059-f12f-4c21-a384-fc763e7cf731",
+        "running": false,
+        "takeover": null
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b0c7f059-f12f-4c21-a384-fc763e7cf731",
+        "running": false,
+        "takeover": []
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b0c7f059-f12f-4c21-a384-fc763e7cf731",
+        "running": false,
+        "takeover": {}
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b0c7f059-f12f-4c21-a384-fc763e7cf731",
+        "running": false,
+        "takeover": 0
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b0c7f059-f12f-4c21-a384-fc763e7cf731",
+        "running": false,
+        "takeover": 1
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b0c7f059-f12f-4c21-a384-fc763e7cf731",
+        "running": false,
+        "takeover": "false"
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b0c7f059-f12f-4c21-a384-fc763e7cf731",
+        "running": false,
+        "takeover": "true"
+      },
+      "status": 200,
+      "expected": 400
+    }
+  ],
+  "layouts": [
+    {
+      "population": 1,
+      "width": 320,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 320,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 320,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 320,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 320,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 320,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 320,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 390,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 390,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 390,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 390,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 390,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 390,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 390,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 700,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 700,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 700,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 700,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 700,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 700,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 700,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 768,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 768,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 768,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 768,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 768,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 768,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 768,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 1150,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 1150,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 1150,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 1150,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 1150,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 1150,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 1150,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 1440,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 1440,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 1440,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 1440,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 1440,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 1440,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 1,
+      "width": 1440,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 320,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 320,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 320,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 320,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 320,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 320,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 320,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 390,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 390,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 390,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 390,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 390,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 390,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 390,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 700,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 700,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 700,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 700,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 700,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 700,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 700,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 768,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 768,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 768,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 768,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 768,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 768,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 768,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 1150,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 1150,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 1150,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 1150,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 1150,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 1150,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 1150,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 1440,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 1440,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 1440,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 1440,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 1440,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 1440,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 3,
+      "width": 1440,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 320,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 320,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 320,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 320,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 320,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 320,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 320,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 390,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 390,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 390,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 390,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 390,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 390,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 390,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 700,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 700,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 700,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 700,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 700,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 700,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 700,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 768,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 768,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 768,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 768,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 768,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 768,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 768,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 1150,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 1150,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 1150,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 1150,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 1150,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 1150,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 1150,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 1440,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 1440,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 1440,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 1440,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 1440,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 1440,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 6,
+      "width": 1440,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 320,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 320,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": true,
+      "wide_elements": [
+        "SPAN",
+        "STRONG",
+        "SMALL",
+        "roster-agent",
+        "SPAN",
+        "STRONG",
+        "SMALL",
+        "roster-agent",
+        "swatch",
+        "SPAN",
+        "STRONG",
+        "SMALL"
+      ]
+    },
+    {
+      "population": 12,
+      "width": 320,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 320,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 320,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 320,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 320,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 390,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 390,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": true,
+      "wide_elements": [
+        "SPAN",
+        "STRONG",
+        "SMALL",
+        "roster-agent",
+        "roster-agent",
+        "swatch",
+        "SPAN",
+        "STRONG",
+        "SMALL",
+        "roster-agent",
+        "swatch",
+        "SPAN"
+      ]
+    },
+    {
+      "population": 12,
+      "width": 390,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": true,
+      "wide_elements": [
+        "SPAN",
+        "STRONG",
+        "SMALL",
+        "roster-agent",
+        "roster-agent",
+        "swatch",
+        "SPAN",
+        "STRONG",
+        "SMALL",
+        "roster-agent",
+        "swatch",
+        "SPAN"
+      ]
+    },
+    {
+      "population": 12,
+      "width": 390,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 390,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 390,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 390,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 700,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 700,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": true,
+      "wide_elements": [
+        "roster-agent",
+        "SPAN",
+        "STRONG",
+        "SMALL",
+        "roster-agent",
+        "swatch",
+        "SPAN",
+        "STRONG",
+        "SMALL",
+        "roster-agent",
+        "swatch",
+        "SPAN"
+      ]
+    },
+    {
+      "population": 12,
+      "width": 700,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 700,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 700,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 700,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 700,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 768,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 768,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": true,
+      "wide_elements": []
+    },
+    {
+      "population": 12,
+      "width": 768,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 768,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 768,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 768,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 768,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 1150,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 1150,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": true,
+      "wide_elements": []
+    },
+    {
+      "population": 12,
+      "width": 1150,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 1150,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 1150,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 1150,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 1150,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 1440,
+      "surface": "workspace",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 1440,
+      "surface": "journal",
+      "document_overflow": false,
+      "dialog_overflow": true,
+      "wide_elements": []
+    },
+    {
+      "population": 12,
+      "width": 1440,
+      "surface": "comparison",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 1440,
+      "surface": "checkpoints",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 1440,
+      "surface": "diagnostics",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 1440,
+      "surface": "architecture",
+      "document_overflow": false,
+      "dialog_overflow": false
+    },
+    {
+      "population": 12,
+      "width": 1440,
+      "surface": "guide",
+      "document_overflow": false,
+      "dialog_overflow": false
+    }
+  ],
+  "page_errors": [],
+  "external_requests": []
+}

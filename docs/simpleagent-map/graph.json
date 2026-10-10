@@ -1,0 +1,519 @@
+{
+  "schema_version": 1,
+  "title": "SimpleAgent / Code atlas",
+  "updated": "2026-09-20",
+  "report": "/Users/ctavolazzi/Documents/Personal-Remote-Vault/Research/2026-09-20_simpleagent-code-exploration.md",
+  "nodes": [
+    {
+      "id": "simpleagentos",
+      "label": "SimpleAgentOS",
+      "kind": "repository",
+      "status": "observed",
+      "summary": "Working OS and shared journal",
+      "detail": "Local HEAD 25d56e1 on main. Existing model traces and journal serve the working OS; they do not implement the proposed recorder boundary.",
+      "evidence": []
+    },
+    {
+      "id": "brain",
+      "label": "Brain.call()",
+      "kind": "component",
+      "status": "observed",
+      "summary": "Extracts and returns model answers",
+      "detail": "Constructs a fixed compatible-chat payload, defaults to streaming, and saves selected fields to SQLite after inference. The full supplied request and response envelope are not preserved.",
+      "evidence": [
+        {
+          "path": "/Users/ctavolazzi/Code/_experiments/SimpleAgentOS/brain.py",
+          "line": 158,
+          "sha256": "7535dc18969e6cfd7c85025a042ddbe92bc0068ed393f21583161c4b4e9b8f0e"
+        }
+      ]
+    },
+    {
+      "id": "journal",
+      "label": "PocketBase journal",
+      "kind": "component",
+      "status": "observed",
+      "summary": "Best-effort shared memory",
+      "detail": "Returns an entry with storage location. Buffers offline, trims old pending entries, skips malformed JSONL, and lacks a prepared-attempt lifecycle.",
+      "evidence": [
+        {
+          "path": "/Users/ctavolazzi/Code/_experiments/SimpleAgentOS/pb_journal.py",
+          "line": 443,
+          "sha256": "b9e68893073ff17628a057d5ffd401247d601129e9214cb5e4f38e1dc806ffb8"
+        }
+      ]
+    },
+    {
+      "id": "nova",
+      "label": "NovaSystem",
+      "kind": "repository",
+      "status": "observed",
+      "summary": "Infrastructure and orchestration",
+      "detail": "Local HEAD 68bbb87 on nova-persona-genesis. DiscussionHub coordinates roles above a single-call primitive. The opt-in memory bridge speaks to shared OS memory over HTTP.",
+      "evidence": [
+        {
+          "path": "/Users/ctavolazzi/Code/active/NovaSystem/novasystem/memory/journal.py",
+          "line": 1,
+          "sha256": "718cb99232642b375fe55b933ca1caa4e2a13026548f36746f900bda00c81957"
+        }
+      ]
+    },
+    {
+      "id": "kernel",
+      "label": "NovaSystem-Codex",
+      "kind": "repository",
+      "status": "observed",
+      "summary": "Minimal conversational kernel",
+      "detail": "Local HEAD d78a197 on dev. Bot owns prompt and message history and returns or streams replies. Infrastructure dependency direction remains undecided.",
+      "evidence": [
+        {
+          "path": "/Users/ctavolazzi/Code/active/NovaSystem-Codex/novasystem/bot.py",
+          "line": 12,
+          "sha256": "1eab4545e4a612af59414d6cbd557be5225bd6a5c0d49c122975f3c18127dee2"
+        }
+      ]
+    },
+    {
+      "id": "waft",
+      "label": "WAFT",
+      "kind": "repository",
+      "status": "observed",
+      "summary": "Possible caller or endpoint",
+      "detail": "Local HEAD 9ec4474d. Ollama-shaped routes can return fallback text and word-based counts. API shape alone does not establish real inference.",
+      "evidence": [
+        {
+          "path": "/Users/ctavolazzi/Code/active/waft/src/waft/api/routes/ollama.py",
+          "line": 364,
+          "sha256": "4129a71e5f27df28ab1ae35d623478b57eab03cf046291a08146e3246921a47b"
+        }
+      ]
+    },
+    {
+      "id": "book",
+      "label": "Book distribution",
+      "kind": "repository",
+      "status": "observed",
+      "summary": "Future delivery surface",
+      "detail": "Local HEAD e0ff6a8. Bonus builder and signed download fulfillment exist. They remain outside recorder implementation scope.",
+      "evidence": [
+        {
+          "path": "/Users/ctavolazzi/Code/active/survivingthesingularity/scripts/build_bonus.py",
+          "line": 35,
+          "sha256": "14890f66e65b5ae66c340db811ec0dba4e4fd0c1b99e758b6725aec39164b1f1"
+        }
+      ]
+    },
+    {
+      "id": "prototype",
+      "label": "Referenced prototype",
+      "kind": "question",
+      "status": "unverified",
+      "summary": "Checkout not located",
+      "detail": "Attachment names commit 9da5fa7, branch codex/simple-agent-recorder, and 18 tests. These were not found in checked local repositories. This is not proof the work never existed.",
+      "evidence": []
+    },
+    {
+      "id": "caller",
+      "label": "Caller",
+      "kind": "contract",
+      "status": "proposed",
+      "summary": "Supplies the complete request",
+      "detail": "Owns prompts, history, goals, and deliberate retries. Notes stay separate unless the caller explicitly places them in the provider payload.",
+      "evidence": []
+    },
+    {
+      "id": "recorder",
+      "label": "SimpleAgent recorder",
+      "kind": "contract",
+      "status": "proposed",
+      "summary": "One call. One durable exchange.",
+      "detail": "Owns persistent identity and journal identity. Prepares an attempt before contact, captures bounded sanitized provider content, confirms persistence, and returns None. Not located as an implemented unit.",
+      "evidence": []
+    },
+    {
+      "id": "endpoint",
+      "label": "Configured endpoint",
+      "kind": "contract",
+      "status": "proposed",
+      "summary": "One configured inference source",
+      "detail": "Provider-native, non-streaming text/JSON transport. No inserted persona, tool loop, automatic inference retry, or universal model/messages requirement.",
+      "evidence": []
+    },
+    {
+      "id": "outbox",
+      "label": "Durable outbox",
+      "kind": "contract",
+      "status": "proposed",
+      "summary": "Retain accepted evidence",
+      "detail": "Sanitized final updates survive persistence failure. Replay storage writes only. Refuse intake at capacity, report corruption, and never silently discard accepted records.",
+      "evidence": []
+    },
+    {
+      "id": "store",
+      "label": "Dedicated journal",
+      "kind": "contract",
+      "status": "proposed",
+      "summary": "Request / response / notes / metadata",
+      "detail": "Dedicated PocketBase ownership with guarded finalization and unique request_id. Capture state, provenance, uncertainty, and unstructured text notes separately.",
+      "evidence": []
+    },
+    {
+      "id": "reader",
+      "label": "Later reader",
+      "kind": "contract",
+      "status": "proposed",
+      "summary": "Interpret persisted records",
+      "detail": "Reads after the agent closes. Owns display, comparison, action, and processed identifiers. A future reader interface is outside the primitive scope.",
+      "evidence": []
+    },
+    {
+      "id": "capture-gap",
+      "label": "Envelope loss",
+      "kind": "finding",
+      "status": "reproduced",
+      "summary": "Unknown provider fields disappear",
+      "detail": "In-memory SQLite plus HTTPX MockTransport: one call returned BrainResult; extracted answer and configured model survived, extra envelope content did not. Missing usage became zero.",
+      "evidence": [
+        {
+          "path": "/Users/ctavolazzi/Code/_experiments/SimpleAgentOS/brain.py",
+          "line": 237,
+          "sha256": "7535dc18969e6cfd7c85025a042ddbe92bc0068ed393f21583161c4b4e9b8f0e"
+        }
+      ]
+    },
+    {
+      "id": "false-duplicate",
+      "label": "False duplicate success",
+      "kind": "finding",
+      "status": "reproduced",
+      "summary": "Validation rejection becomes success",
+      "detail": "Injected HTTP 400 validation_required for entry_id returned {duplicate: true}. Sync treats non-None as success and can discard the unaccepted entry. No live PocketBase request.",
+      "evidence": [
+        {
+          "path": "/Users/ctavolazzi/Code/_experiments/SimpleAgentOS/pb_journal.py",
+          "line": 195,
+          "sha256": "b9e68893073ff17628a057d5ffd401247d601129e9214cb5e4f38e1dc806ffb8"
+        }
+      ]
+    },
+    {
+      "id": "sync-race",
+      "label": "Lost append during sync",
+      "kind": "finding",
+      "status": "reproduced",
+      "summary": "Snapshot rewrite drops a new entry",
+      "detail": "Actual sync function with an in-memory spool substitute: append during successful upload disappeared in the final rewrite. Deterministic control-flow reproduction, not a filesystem stress test.",
+      "evidence": [
+        {
+          "path": "/Users/ctavolazzi/Code/_experiments/SimpleAgentOS/pb_journal.py",
+          "line": 529,
+          "sha256": "b9e68893073ff17628a057d5ffd401247d601129e9214cb5e4f38e1dc806ffb8"
+        }
+      ]
+    },
+    {
+      "id": "access-rules",
+      "label": "Public update rule",
+      "kind": "finding",
+      "status": "observed",
+      "summary": "Append-only is not enforced",
+      "detail": "Checked migration allows public list/view/create/update and locks delete. No per-agent ownership or finalization guard. Live deployed schema was not inspected.",
+      "evidence": [
+        {
+          "path": "/Users/ctavolazzi/Code/_experiments/SimpleAgentOS/core_engine/pb_migrations/1712270000_agent_journal.js",
+          "line": 65,
+          "sha256": "707455da155a469879c7d62fae2167cc3334859ba689c3ac17f01e9845d6c6c1"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "simpleagentos--brain",
+      "source": "simpleagentos",
+      "target": "brain",
+      "label": "contains",
+      "kind": "observed"
+    },
+    {
+      "id": "simpleagentos--journal",
+      "source": "simpleagentos",
+      "target": "journal",
+      "label": "contains",
+      "kind": "observed"
+    },
+    {
+      "id": "nova--journal",
+      "source": "nova",
+      "target": "journal",
+      "label": "optional HTTP bridge",
+      "kind": "observed"
+    },
+    {
+      "id": "kernel--nova",
+      "source": "kernel",
+      "target": "nova",
+      "label": "dependency undecided",
+      "kind": "unresolved"
+    },
+    {
+      "id": "brain--recorder",
+      "source": "brain",
+      "target": "recorder",
+      "label": "provenance reference",
+      "kind": "proposed"
+    },
+    {
+      "id": "journal--recorder",
+      "source": "journal",
+      "target": "recorder",
+      "label": "persistence reference",
+      "kind": "proposed"
+    },
+    {
+      "id": "waft--recorder",
+      "source": "waft",
+      "target": "recorder",
+      "label": "possible consumer",
+      "kind": "proposed"
+    },
+    {
+      "id": "recorder--book",
+      "source": "recorder",
+      "target": "book",
+      "label": "possible future packaging",
+      "kind": "proposed"
+    },
+    {
+      "id": "prototype--recorder",
+      "source": "prototype",
+      "target": "recorder",
+      "label": "implementation location unknown",
+      "kind": "unresolved"
+    },
+    {
+      "id": "caller--recorder",
+      "source": "caller",
+      "target": "recorder",
+      "label": "supplied request",
+      "kind": "proposed"
+    },
+    {
+      "id": "recorder--endpoint",
+      "source": "recorder",
+      "target": "endpoint",
+      "label": "one inference request",
+      "kind": "proposed"
+    },
+    {
+      "id": "endpoint--recorder",
+      "source": "endpoint",
+      "target": "recorder",
+      "label": "provider body",
+      "kind": "proposed"
+    },
+    {
+      "id": "recorder--store",
+      "source": "recorder",
+      "target": "store",
+      "label": "prepare before contact",
+      "kind": "proposed"
+    },
+    {
+      "id": "recorder--outbox",
+      "source": "recorder",
+      "target": "outbox",
+      "label": "sanitize + buffer",
+      "kind": "proposed"
+    },
+    {
+      "id": "outbox--store",
+      "source": "outbox",
+      "target": "store",
+      "label": "finalize / replay storage",
+      "kind": "proposed"
+    },
+    {
+      "id": "store--reader",
+      "source": "store",
+      "target": "reader",
+      "label": "persisted records",
+      "kind": "proposed"
+    },
+    {
+      "id": "brain--capture-gap",
+      "source": "brain",
+      "target": "capture-gap",
+      "label": "loses envelope",
+      "kind": "observed"
+    },
+    {
+      "id": "journal--false-duplicate",
+      "source": "journal",
+      "target": "false-duplicate",
+      "label": "accepts HTTP 400",
+      "kind": "observed"
+    },
+    {
+      "id": "journal--sync-race",
+      "source": "journal",
+      "target": "sync-race",
+      "label": "rewrites snapshot",
+      "kind": "observed"
+    },
+    {
+      "id": "journal--access-rules",
+      "source": "journal",
+      "target": "access-rules",
+      "label": "migration rules",
+      "kind": "observed"
+    },
+    {
+      "id": "capture-gap--recorder",
+      "source": "capture-gap",
+      "target": "recorder",
+      "label": "preserve envelope",
+      "kind": "proposed"
+    },
+    {
+      "id": "false-duplicate--store",
+      "source": "false-duplicate",
+      "target": "store",
+      "label": "compare before ack",
+      "kind": "proposed"
+    },
+    {
+      "id": "sync-race--outbox",
+      "source": "sync-race",
+      "target": "outbox",
+      "label": "transactional outbox",
+      "kind": "proposed"
+    },
+    {
+      "id": "access-rules--store",
+      "source": "access-rules",
+      "target": "store",
+      "label": "enforce ownership",
+      "kind": "proposed"
+    }
+  ],
+  "views": [
+    {
+      "id": "landscape",
+      "label": "Code landscape",
+      "description": "Existing components, possible reuse, and the unresolved prototype location. Lines express labeled relationships, not a deployed pipeline.",
+      "positions": {
+        "simpleagentos": [
+          30,
+          40
+        ],
+        "brain": [
+          310,
+          40
+        ],
+        "journal": [
+          310,
+          180
+        ],
+        "nova": [
+          30,
+          180
+        ],
+        "kernel": [
+          30,
+          330
+        ],
+        "waft": [
+          310,
+          330
+        ],
+        "recorder": [
+          610,
+          180
+        ],
+        "prototype": [
+          610,
+          40
+        ],
+        "book": [
+          610,
+          330
+        ]
+      }
+    },
+    {
+      "id": "contract",
+      "label": "Proposed exchange",
+      "description": "Design only. Prepare before model contact, buffer sanitized content, then finalize. Persistence replay must never repeat inference.",
+      "positions": {
+        "caller": [
+          30,
+          50
+        ],
+        "recorder": [
+          310,
+          180
+        ],
+        "endpoint": [
+          610,
+          50
+        ],
+        "outbox": [
+          310,
+          350
+        ],
+        "store": [
+          610,
+          350
+        ],
+        "reader": [
+          610,
+          500
+        ]
+      }
+    },
+    {
+      "id": "findings",
+      "label": "Evidence & gaps",
+      "description": "Reproduced behaviors use isolated in-memory probes. Observed findings come from source inspection, not a running PocketBase deployment.",
+      "positions": {
+        "brain": [
+          30,
+          50
+        ],
+        "journal": [
+          30,
+          250
+        ],
+        "capture-gap": [
+          310,
+          50
+        ],
+        "false-duplicate": [
+          310,
+          200
+        ],
+        "sync-race": [
+          310,
+          350
+        ],
+        "access-rules": [
+          310,
+          500
+        ],
+        "recorder": [
+          610,
+          50
+        ],
+        "outbox": [
+          610,
+          350
+        ],
+        "store": [
+          610,
+          500
+        ]
+      }
+    }
+  ]
+}

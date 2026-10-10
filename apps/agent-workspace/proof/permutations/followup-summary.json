@@ -1,0 +1,459 @@
+{
+  "order_controls": [
+    {
+      "positions": "fixed_by_role",
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "harvests": 0,
+      "repairs": 0,
+      "first_harvest_tick": null,
+      "events": 307,
+      "tasks": 80,
+      "final_resources": {
+        "version": 1,
+        "policy_version": 1,
+        "water": 0,
+        "wood": 0,
+        "food": 0,
+        "moisture": 0,
+        "growth": 72,
+        "pump": "broken",
+        "harvests": 0,
+        "repairs": 0,
+        "exchanges": 142,
+        "weather": "clear",
+        "weather_until": 0,
+        "art_version": "fieldwork-v2",
+        "started_tick": 0,
+        "has_scout": true
+      }
+    },
+    {
+      "positions": "fixed_by_role",
+      "order": [
+        0,
+        2,
+        1
+      ],
+      "harvests": 0,
+      "repairs": 0,
+      "first_harvest_tick": null,
+      "events": 307,
+      "tasks": 80,
+      "final_resources": {
+        "version": 1,
+        "policy_version": 1,
+        "water": 0,
+        "wood": 0,
+        "food": 0,
+        "moisture": 0,
+        "growth": 72,
+        "pump": "broken",
+        "harvests": 0,
+        "repairs": 0,
+        "exchanges": 142,
+        "weather": "clear",
+        "weather_until": 0,
+        "art_version": "fieldwork-v2",
+        "started_tick": 0,
+        "has_scout": true
+      }
+    },
+    {
+      "positions": "fixed_by_role",
+      "order": [
+        1,
+        0,
+        2
+      ],
+      "harvests": 0,
+      "repairs": 0,
+      "first_harvest_tick": null,
+      "events": 307,
+      "tasks": 80,
+      "final_resources": {
+        "version": 1,
+        "policy_version": 1,
+        "water": 0,
+        "wood": 0,
+        "food": 0,
+        "moisture": 0,
+        "growth": 72,
+        "pump": "broken",
+        "harvests": 0,
+        "repairs": 0,
+        "exchanges": 142,
+        "weather": "clear",
+        "weather_until": 0,
+        "art_version": "fieldwork-v2",
+        "started_tick": 0,
+        "has_scout": true
+      }
+    },
+    {
+      "positions": "fixed_by_role",
+      "order": [
+        1,
+        2,
+        0
+      ],
+      "harvests": 0,
+      "repairs": 0,
+      "first_harvest_tick": null,
+      "events": 307,
+      "tasks": 80,
+      "final_resources": {
+        "version": 1,
+        "policy_version": 1,
+        "water": 0,
+        "wood": 0,
+        "food": 0,
+        "moisture": 0,
+        "growth": 72,
+        "pump": "broken",
+        "harvests": 0,
+        "repairs": 0,
+        "exchanges": 142,
+        "weather": "clear",
+        "weather_until": 0,
+        "art_version": "fieldwork-v2",
+        "started_tick": 0,
+        "has_scout": true
+      }
+    },
+    {
+      "positions": "fixed_by_role",
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "harvests": 0,
+      "repairs": 0,
+      "first_harvest_tick": null,
+      "events": 307,
+      "tasks": 80,
+      "final_resources": {
+        "version": 1,
+        "policy_version": 1,
+        "water": 0,
+        "wood": 0,
+        "food": 0,
+        "moisture": 0,
+        "growth": 72,
+        "pump": "broken",
+        "harvests": 0,
+        "repairs": 0,
+        "exchanges": 142,
+        "weather": "clear",
+        "weather_until": 0,
+        "art_version": "fieldwork-v2",
+        "started_tick": 0,
+        "has_scout": true
+      }
+    },
+    {
+      "positions": "fixed_by_role",
+      "order": [
+        2,
+        1,
+        0
+      ],
+      "harvests": 0,
+      "repairs": 0,
+      "first_harvest_tick": null,
+      "events": 307,
+      "tasks": 80,
+      "final_resources": {
+        "version": 1,
+        "policy_version": 1,
+        "water": 0,
+        "wood": 0,
+        "food": 0,
+        "moisture": 0,
+        "growth": 72,
+        "pump": "broken",
+        "harvests": 0,
+        "repairs": 0,
+        "exchanges": 142,
+        "weather": "clear",
+        "weather_until": 0,
+        "art_version": "fieldwork-v2",
+        "started_tick": 0,
+        "has_scout": true
+      }
+    },
+    {
+      "positions": "colocated",
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "harvests": 1,
+      "repairs": 0,
+      "first_harvest_tick": 401,
+      "events": 305,
+      "tasks": 80,
+      "final_resources": {
+        "version": 1,
+        "policy_version": 1,
+        "water": 0,
+        "wood": 0,
+        "food": 3,
+        "moisture": 0,
+        "growth": 0,
+        "pump": "broken",
+        "harvests": 1,
+        "repairs": 0,
+        "exchanges": 140,
+        "weather": "clear",
+        "weather_until": 0,
+        "art_version": "fieldwork-v2",
+        "started_tick": 0,
+        "has_scout": true
+      }
+    },
+    {
+      "positions": "colocated",
+      "order": [
+        0,
+        2,
+        1
+      ],
+      "harvests": 1,
+      "repairs": 0,
+      "first_harvest_tick": 401,
+      "events": 305,
+      "tasks": 80,
+      "final_resources": {
+        "version": 1,
+        "policy_version": 1,
+        "water": 0,
+        "wood": 0,
+        "food": 3,
+        "moisture": 0,
+        "growth": 0,
+        "pump": "broken",
+        "harvests": 1,
+        "repairs": 0,
+        "exchanges": 140,
+        "weather": "clear",
+        "weather_until": 0,
+        "art_version": "fieldwork-v2",
+        "started_tick": 0,
+        "has_scout": true
+      }
+    },
+    {
+      "positions": "colocated",
+      "order": [
+        1,
+        0,
+        2
+      ],
+      "harvests": 1,
+      "repairs": 0,
+      "first_harvest_tick": 401,
+      "events": 305,
+      "tasks": 80,
+      "final_resources": {
+        "version": 1,
+        "policy_version": 1,
+        "water": 0,
+        "wood": 0,
+        "food": 3,
+        "moisture": 0,
+        "growth": 0,
+        "pump": "broken",
+        "harvests": 1,
+        "repairs": 0,
+        "exchanges": 140,
+        "weather": "clear",
+        "weather_until": 0,
+        "art_version": "fieldwork-v2",
+        "started_tick": 0,
+        "has_scout": true
+      }
+    },
+    {
+      "positions": "colocated",
+      "order": [
+        1,
+        2,
+        0
+      ],
+      "harvests": 1,
+      "repairs": 0,
+      "first_harvest_tick": 401,
+      "events": 305,
+      "tasks": 80,
+      "final_resources": {
+        "version": 1,
+        "policy_version": 1,
+        "water": 0,
+        "wood": 0,
+        "food": 3,
+        "moisture": 0,
+        "growth": 0,
+        "pump": "broken",
+        "harvests": 1,
+        "repairs": 0,
+        "exchanges": 140,
+        "weather": "clear",
+        "weather_until": 0,
+        "art_version": "fieldwork-v2",
+        "started_tick": 0,
+        "has_scout": true
+      }
+    },
+    {
+      "positions": "colocated",
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "harvests": 1,
+      "repairs": 0,
+      "first_harvest_tick": 401,
+      "events": 305,
+      "tasks": 80,
+      "final_resources": {
+        "version": 1,
+        "policy_version": 1,
+        "water": 0,
+        "wood": 0,
+        "food": 3,
+        "moisture": 0,
+        "growth": 0,
+        "pump": "broken",
+        "harvests": 1,
+        "repairs": 0,
+        "exchanges": 140,
+        "weather": "clear",
+        "weather_until": 0,
+        "art_version": "fieldwork-v2",
+        "started_tick": 0,
+        "has_scout": true
+      }
+    },
+    {
+      "positions": "colocated",
+      "order": [
+        2,
+        1,
+        0
+      ],
+      "harvests": 1,
+      "repairs": 0,
+      "first_harvest_tick": 401,
+      "events": 305,
+      "tasks": 80,
+      "final_resources": {
+        "version": 1,
+        "policy_version": 1,
+        "water": 0,
+        "wood": 0,
+        "food": 3,
+        "moisture": 0,
+        "growth": 0,
+        "pump": "broken",
+        "harvests": 1,
+        "repairs": 0,
+        "exchanges": 140,
+        "weather": "clear",
+        "weather_until": 0,
+        "art_version": "fieldwork-v2",
+        "started_tick": 0,
+        "has_scout": true
+      }
+    }
+  ],
+  "long_runs": [
+    {
+      "intervention": "none",
+      "ticks": 5000,
+      "harvests": 0,
+      "repairs": 0,
+      "first_harvest_tick": null,
+      "events": 2791,
+      "tasks": 748,
+      "final_resources": {
+        "version": 1,
+        "policy_version": 1,
+        "water": 0,
+        "wood": 0,
+        "food": 0,
+        "moisture": 0,
+        "growth": 0,
+        "pump": "broken",
+        "harvests": 0,
+        "repairs": 0,
+        "exchanges": 1290,
+        "weather": "clear",
+        "weather_until": 0,
+        "art_version": "fieldwork-v2",
+        "started_tick": 0,
+        "has_scout": true
+      }
+    },
+    {
+      "intervention": "rain",
+      "ticks": 5000,
+      "harvests": 1,
+      "repairs": 0,
+      "first_harvest_tick": 416,
+      "events": 2825,
+      "tasks": 757,
+      "final_resources": {
+        "version": 1,
+        "policy_version": 1,
+        "water": 0,
+        "wood": 0,
+        "food": 0,
+        "moisture": 0,
+        "growth": 0,
+        "pump": "broken",
+        "harvests": 1,
+        "repairs": 0,
+        "exchanges": 1306,
+        "weather": "clear",
+        "weather_until": 240,
+        "art_version": "fieldwork-v2",
+        "started_tick": 0,
+        "has_scout": true
+      }
+    },
+    {
+      "intervention": "timber",
+      "ticks": 5000,
+      "harvests": 21,
+      "repairs": 1,
+      "first_harvest_tick": 560,
+      "events": 2948,
+      "tasks": 924,
+      "final_resources": {
+        "version": 1,
+        "policy_version": 1,
+        "water": 30,
+        "wood": 1,
+        "food": 14,
+        "moisture": 72,
+        "growth": 12,
+        "pump": "working",
+        "harvests": 21,
+        "repairs": 1,
+        "exchanges": 1096,
+        "weather": "clear",
+        "weather_until": 0,
+        "art_version": "fieldwork-v2",
+        "started_tick": 0,
+        "has_scout": true
+      }
+    }
+  ]
+}

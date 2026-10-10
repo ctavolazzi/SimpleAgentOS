@@ -1,0 +1,539 @@
+{
+  "http": [
+    {
+      "action": "add_agent",
+      "body": {
+        "name": null,
+        "personality": "Probe"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": "Probe",
+        "personality": null
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "set_role",
+      "body": {
+        "agent_id": "54cb03ac-9d48-421e-9347-8f0044272ecc",
+        "role": null
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "intervene",
+      "body": {
+        "intervention": null
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "decision",
+      "body": {
+        "agent_id": "54cb03ac-9d48-421e-9347-8f0044272ecc",
+        "text": "Probe",
+        "evidence_ids": null
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": [],
+        "personality": "Probe"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": "Probe",
+        "personality": []
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "set_role",
+      "body": {
+        "agent_id": "54cb03ac-9d48-421e-9347-8f0044272ecc",
+        "role": []
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "intervene",
+      "body": {
+        "intervention": []
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "decision",
+      "body": {
+        "agent_id": "54cb03ac-9d48-421e-9347-8f0044272ecc",
+        "text": "Probe",
+        "evidence_ids": []
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": {},
+        "personality": "Probe"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": "Probe",
+        "personality": {}
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "set_role",
+      "body": {
+        "agent_id": "54cb03ac-9d48-421e-9347-8f0044272ecc",
+        "role": {}
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "intervene",
+      "body": {
+        "intervention": {}
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "decision",
+      "body": {
+        "agent_id": "54cb03ac-9d48-421e-9347-8f0044272ecc",
+        "text": "Probe",
+        "evidence_ids": {}
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": 0,
+        "personality": "Probe"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": "Probe",
+        "personality": 0
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "set_role",
+      "body": {
+        "agent_id": "54cb03ac-9d48-421e-9347-8f0044272ecc",
+        "role": 0
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "intervene",
+      "body": {
+        "intervention": 0
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "decision",
+      "body": {
+        "agent_id": "54cb03ac-9d48-421e-9347-8f0044272ecc",
+        "text": "Probe",
+        "evidence_ids": 0
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": true,
+        "personality": "Probe"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": "Probe",
+        "personality": true
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "set_role",
+      "body": {
+        "agent_id": "54cb03ac-9d48-421e-9347-8f0044272ecc",
+        "role": true
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "intervene",
+      "body": {
+        "intervention": true
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "decision",
+      "body": {
+        "agent_id": "54cb03ac-9d48-421e-9347-8f0044272ecc",
+        "text": "Probe",
+        "evidence_ids": true
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": "",
+        "personality": "Probe"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": "Probe",
+        "personality": ""
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "set_role",
+      "body": {
+        "agent_id": "54cb03ac-9d48-421e-9347-8f0044272ecc",
+        "role": ""
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "intervene",
+      "body": {
+        "intervention": ""
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "decision",
+      "body": {
+        "agent_id": "54cb03ac-9d48-421e-9347-8f0044272ecc",
+        "text": "Probe",
+        "evidence_ids": ""
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": "   ",
+        "personality": "Probe"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": "Probe",
+        "personality": "   "
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "set_role",
+      "body": {
+        "agent_id": "54cb03ac-9d48-421e-9347-8f0044272ecc",
+        "role": "   "
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "intervene",
+      "body": {
+        "intervention": "   "
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "decision",
+      "body": {
+        "agent_id": "54cb03ac-9d48-421e-9347-8f0044272ecc",
+        "text": "Probe",
+        "evidence_ids": "   "
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "personality": "Probe"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "add_agent",
+      "body": {
+        "name": "Probe",
+        "personality": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "set_role",
+      "body": {
+        "agent_id": "54cb03ac-9d48-421e-9347-8f0044272ecc",
+        "role": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "intervene",
+      "body": {
+        "intervention": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "decision",
+      "body": {
+        "agent_id": "54cb03ac-9d48-421e-9347-8f0044272ecc",
+        "text": "Probe",
+        "evidence_ids": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "status": 400,
+      "expected": 400,
+      "state_unchanged": true
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b73bc961-469a-49e8-89c2-054fb267b8d4",
+        "running": null
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b73bc961-469a-49e8-89c2-054fb267b8d4",
+        "running": []
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b73bc961-469a-49e8-89c2-054fb267b8d4",
+        "running": {}
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b73bc961-469a-49e8-89c2-054fb267b8d4",
+        "running": 0
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b73bc961-469a-49e8-89c2-054fb267b8d4",
+        "running": 1
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b73bc961-469a-49e8-89c2-054fb267b8d4",
+        "running": "false"
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b73bc961-469a-49e8-89c2-054fb267b8d4",
+        "running": "true"
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b73bc961-469a-49e8-89c2-054fb267b8d4",
+        "running": false,
+        "takeover": null
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b73bc961-469a-49e8-89c2-054fb267b8d4",
+        "running": false,
+        "takeover": []
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b73bc961-469a-49e8-89c2-054fb267b8d4",
+        "running": false,
+        "takeover": {}
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b73bc961-469a-49e8-89c2-054fb267b8d4",
+        "running": false,
+        "takeover": 0
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b73bc961-469a-49e8-89c2-054fb267b8d4",
+        "running": false,
+        "takeover": 1
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b73bc961-469a-49e8-89c2-054fb267b8d4",
+        "running": false,
+        "takeover": "false"
+      },
+      "status": 200,
+      "expected": 400
+    },
+    {
+      "action": "run",
+      "body": {
+        "id": "b73bc961-469a-49e8-89c2-054fb267b8d4",
+        "running": false,
+        "takeover": "true"
+      },
+      "status": 200,
+      "expected": 400
+    }
+  ],
+  "layouts": [],
+  "page_errors": []
+}
