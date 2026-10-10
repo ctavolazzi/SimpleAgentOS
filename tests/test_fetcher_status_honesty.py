@@ -31,8 +31,57 @@ import git_scanner
 import local_news
 import spin_up
 
+# The cache dir spin_up resolved at import. No test in this file may write here.
+IMPORT_TIME_CACHE_DIR = spin_up.CACHE_DIR
 
-class TestNewsStatus(unittest.TestCase):
+# Faithful to local_news.fetch(): the keys format_news_md actually indexes.
+GOOD_NEWS = {
+    "query": "Chico California",
+    "fetched_at": "2026-10-07T19:40:00",
+    "count": 2,
+    "stories": [
+        {"title": "Council votes", "link": "https://example.com/1",
+         "published": "Wed, 07 Oct 2026 18:00:00 GMT", "source": "Example News"},
+        {"title": "Creek cleanup", "link": "https://example.com/2",
+         "published": "Wed, 07 Oct 2026 17:00:00 GMT", "source": "Example News"},
+    ],
+}
+
+# What TestNewsStatus feeds the fetcher: enough for a status line, not for a note.
+TITLE_ONLY_NEWS = {"count": 3, "stories": [{"title": "a"}, {"title": "b"}, {"title": "c"}]}
+
+
+class _SealedCache(unittest.TestCase):
+    """Point spin_up.CACHE_DIR at a tmpdir for every test in the class.
+
+    Any test that calls a caching `_fetch_*` with a stubbed feed inherits this.
+    """
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        patch = mock.patch.object(spin_up, "CACHE_DIR", self.tmp)
+        patch.start()
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        self.addCleanup(patch.stop)
+
+
+class TestNewsStatus(_SealedCache):
+    def test_these_tests_cannot_reach_the_import_time_cache(self):
+        """A stubbed fetch must land in a tmpdir, never in the real cache.
+
+        `_fetch_news(force=True)` skips the cache read, not the cache write.
+        From 2026-09-20 to 2026-10-07 the three tests below wrote their
+        title-only fixture into ~/.cache/daily-harness on every suite run.
+        Spin-up then served it as "cached", `format_news_md` raised
+        KeyError('link'), and the note said local news was unavailable while
+        the status line said "News: 3 stories".
+        """
+        with mock.patch.object(local_news, "fetch", return_value=TITLE_ONLY_NEWS):
+            spin_up._fetch_news(force=True)
+        self.assertNotEqual(
+            spin_up._cache_path("news").parent, IMPORT_TIME_CACHE_DIR,
+            "TestNewsStatus is writing its fixture into the cache spin_up really uses")
+
     def test_empty_feed_is_suspicious_not_ok(self):
         with mock.patch.object(local_news, "fetch",
                                return_value={"count": 0, "stories": []}):
@@ -53,6 +102,35 @@ class TestNewsStatus(unittest.TestCase):
                                return_value={"stories": [{"title": "a"}]}):
             _, status = spin_up._fetch_news(force=True)
         self.assertIn("1 stories", status)
+
+
+class TestNewsCacheIsValidated(_SealedCache):
+    """A cached payload the formatter cannot render is a miss, not a hit."""
+
+    def test_unrenderable_cached_payload_is_not_served(self):
+        spin_up._write_cache("news", TITLE_ONLY_NEWS)
+        with mock.patch.object(local_news, "fetch", return_value=GOOD_NEWS) as fetch:
+            n, status = spin_up._fetch_news(force=False)
+        self.assertNotEqual(status, "cached",
+                            "served a cached payload that format_news_md cannot render")
+        fetch.assert_called_once()
+        local_news.format_news_md(n)  # the note's formatter must accept what we return
+
+    def test_good_cached_payload_is_still_served(self):
+        """The validation must not turn every cache hit into a network call."""
+        spin_up._write_cache("news", GOOD_NEWS)
+        with mock.patch.object(local_news, "fetch",
+                               side_effect=AssertionError("network was hit")):
+            n, status = spin_up._fetch_news(force=False)
+        self.assertEqual(status, "cached")
+        self.assertEqual(n["stories"][0]["link"], "https://example.com/1")
+
+    def test_dead_feed_does_not_fall_back_to_an_unrenderable_cache(self):
+        spin_up._write_cache("news", TITLE_ONLY_NEWS)
+        with mock.patch.object(local_news, "fetch", side_effect=TimeoutError("down")):
+            n, status = spin_up._fetch_news(force=True)
+        self.assertTrue(status.startswith("failed (no cache)"), status)
+        self.assertEqual(n, {})
 
 
 class TestGitScanStatus(unittest.TestCase):

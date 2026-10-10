@@ -139,7 +139,7 @@ date: {date}
 parent: "[[Daily Notes/{date}]]"
 status: active
 locked_at: "null"
-rolled_over_from: "[[Plans/{rolled_over_from}_daily_plan]]"
+rolled_over_from: {rolled_over_from}
 threads_total: 0
 threads_completed: 0
 tags:
@@ -248,10 +248,17 @@ def create_today(rollover_items: Optional[list[str]] = None,
     else:
         threads_section = _BLANK_THREADS
 
+    # Link the source plan only when there is one. This used to fall back to
+    # yesterday's date, so a day after a gap linked to a plan nobody wrote.
+    if source_date and _plan_path(source_date).exists():
+        rolled_over_from = f'"[[Plans/{source_date}_daily_plan]]"'
+    else:
+        rolled_over_from = '""'
+
     content = _PLAN_TEMPLATE.format(
         date=d,
         day_label=_day_label(d),
-        rolled_over_from=source_date or _yesterday(),
+        rolled_over_from=rolled_over_from,
         threads_section=threads_section,
     )
 

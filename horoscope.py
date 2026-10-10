@@ -194,15 +194,24 @@ def _momentum_prose(data: dict) -> str:
 # ── Fetcher ──────────────────────────────────────────────────────────────────
 
 def fetch(sign: str = YOUR_SIGN) -> dict:
-    """Fetch today's horoscope for sign. Returns {sign, date, horoscope, source}."""
+    """Fetch today's horoscope for sign.
+
+    Returns {sign, date, feed_date, horoscope, source}. `date` is the local day
+    the reading was pulled for, which is the day the note is about. `feed_date`
+    is what the feed stamped on it. The feed runs on its own clock: an evening
+    pull on 2026-10-07 Pacific came back dated 2026-10-08, and the note for
+    Wednesday was headed "Thursday, October 8".
+    """
     url = _OHMANDA.format(sign=sign.lower().strip())
+    today = datetime.now().strftime("%Y-%m-%d")
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "SimpleAgentOS/1.0"})
         with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
             data = json.loads(resp.read())
         return {
             "sign":      data.get("sign", sign),
-            "date":      data.get("date", datetime.now().strftime("%Y-%m-%d")),
+            "date":      today,
+            "feed_date": data.get("date", today),
             "horoscope": data.get("horoscope", ""),
             "source":    "ohmanda.com",
         }
@@ -295,8 +304,18 @@ def format_md(data: dict, waft_data: Optional[dict] = None, moon_phase: Optional
             if sentence:
                 lines.append(f"> {sentence}")
         if source:
+            # The header names the note's day. If the feed dated its reading
+            # differently, say so here instead of letting it rename the day.
+            feed_date = data.get("feed_date") or date_str
+            feed_note = ""
+            if feed_date != date_str:
+                try:
+                    feed_note = datetime.strptime(
+                        feed_date, "%Y-%m-%d").strftime(", feed dated %B %-d")
+                except Exception:
+                    feed_note = f", feed dated {feed_date}"
             lines.append(">")
-            lines.append(f"> *— {source}*")
+            lines.append(f"> *— {source}{feed_note}*")
     else:
         lines.append("> *Cosmic signal unavailable. The stars speak in silence today.*")
 

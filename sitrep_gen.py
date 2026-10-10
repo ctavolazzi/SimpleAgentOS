@@ -35,7 +35,9 @@ def _read_plan_tasks(date_str: str, limit: int = 3) -> list[str]:
     if not plan_path.exists():
         return []
     text = plan_path.read_text(encoding="utf-8")
-    tasks = re.findall(r'^[-*]\s+\[ \]\s+(.+)$', text, re.MULTILINE)
+    # [ \t], not \s: \s crosses line breaks, so the blank template's empty
+    # "- [ ]" ran on and captured the "---" rule below it as a task.
+    tasks = re.findall(r'^[-*][ \t]+\[ \][ \t]+(\S.*)$', text, re.MULTILINE)
     return [t.strip() for t in tasks[:limit]]
 
 

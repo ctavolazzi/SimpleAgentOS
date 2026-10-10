@@ -82,12 +82,16 @@ def check(title):
     return deco
 
 
-def sh(args, cwd=None):
+def sh(args, cwd=None, timeout=30):
     try:
         out = subprocess.run(args, cwd=cwd, capture_output=True, text=True,
-                             timeout=30)
+                             timeout=timeout)
         return out.returncode, out.stdout.strip(), out.stderr.strip()
-    except (OSError, subprocess.TimeoutExpired) as e:
+    except subprocess.TimeoutExpired:
+        # Say so in plain words. A caller that only sees empty output cannot
+        # tell "killed" from "ran and printed nothing".
+        return 1, "", f"timed out after {timeout}s"
+    except OSError as e:
         return 1, "", str(e)
 
 
@@ -456,10 +460,19 @@ def _check_strays():
     return OK, ["none found"]
 
 
+# The suite ran in 89 to 214 seconds on 2026-10-07. It used to share sh()'s
+# 30-second default, so this check was killed on every run and reported
+# "no summary": it could report neither a pass nor a failure.
+SUITE_TIMEOUT = 900
+
+
 @check("Harness test suite passes")
 def _check_tests():
     rc, out, err = sh([sys.executable, "-m", "pytest", "tests/", "-q",
-                       "--no-header", "-x", "--tb=no"], cwd=str(HARNESS))
+                       "--no-header", "-x", "--tb=no"], cwd=str(HARNESS),
+                      timeout=SUITE_TIMEOUT)
+    if rc != 0 and not out and "timed out" in err:
+        return WARN, [f"suite did not finish ({err}); result unknown"]
     tail = (out or err).strip().splitlines()
     summary = next((l for l in reversed(tail) if "passed" in l or "failed" in l),
                    "no summary")

@@ -463,33 +463,81 @@ def check_data_sources(deep: bool = False) -> List[Check]:
 
 # ── Category D: Epistemic Context ──────────────────────────────────────
 
+# Never descend into these when looking for .empirica dirs: they are large and
+# hold vendored copies of other people's projects.
+_TX_PRUNE = {"node_modules", ".git", ".venv", "venv", "__pycache__",
+             ".svelte-kit", "dist", "build", ".next", "target"}
+_TX_MAX_DEPTH = 4
+
+
+def _empirica_transactions(root: Optional[Path] = None):
+    """Read every `.empirica/active_transaction*.json` under `root`.
+
+    Returns (transactions, unreadable_count). Each transaction is
+    {project, status, mtime, path}. The walk is depth-bounded and pruned so it
+    stays well under a second on the whole of ~/Code.
+    """
+    root = Path(root) if root is not None else CODE_ROOT
+    txs, unreadable = [], 0
+    if not root.exists():
+        return txs, unreadable
+    base_depth = len(root.parts)
+    for dirpath, dirnames, _files in os.walk(root):
+        here = Path(dirpath)
+        depth = len(here.parts) - base_depth
+        if ".empirica" in dirnames:
+            for f in sorted((here / ".empirica").glob("active_transaction*.json")):
+                try:
+                    data = json.loads(f.read_text())
+                    txs.append({
+                        "project": here.name,
+                        "status": str(data.get("status", "unknown")).lower(),
+                        "mtime": f.stat().st_mtime,
+                        "path": str(f),
+                    })
+                except Exception:
+                    unreadable += 1
+        dirnames[:] = [] if depth >= _TX_MAX_DEPTH else [
+            d for d in dirnames if d not in _TX_PRUNE and d != ".empirica"]
+    return txs, unreadable
+
+
 def check_epistemic() -> List[Check]:
     out: List[Check] = []
 
-    # D1: open empirica transactions
-    rc, sout, serr = run(["empirica", "transaction-list", "--open", "--output", "json"], timeout=5)
-    if rc == 0 and sout:
-        try:
-            data = json.loads(sout)
-            if isinstance(data, list):
-                count = len(data)
-            elif isinstance(data, dict):
-                count = data.get("count", len(data.get("transactions", [])))
-            else:
-                count = 0
-            st = PASS if count <= 1 else WARN
-            out.append(Check(
-                id="D1", category="epistemic", name="Open empirica transactions",
-                status=st, message=f"{count} open",
-                action=None if count <= 1 else "close stale via empirica postflight-submit",
-                data={"count": count},
-            ))
-        except Exception:
-            out.append(Check(id="D1", category="epistemic", name="Open empirica transactions",
-                             status=SKIP, message="JSON parse failed"))
+    # D1: open empirica transactions, counted from empirica's own state files.
+    #
+    # Each project keeps `.empirica/active_transaction*.json` with a `status`
+    # of open or closed. That file is the record; the CLI is not. This check
+    # used to call `empirica transaction-list`, a subcommand that does not
+    # exist, so it skipped on every run. `empirica status --all --json` does
+    # exist and was tried next: it reported 0 open on 2026-10-07 while nine of
+    # these files said open, eight of them left over since March and April.
+    d1 = dict(id="D1", category="epistemic", name="Open empirica transactions")
+    txs, unreadable = _empirica_transactions()
+    if not txs and not unreadable:
+        out.append(Check(**d1, status=SKIP,
+                         message=f"no empirica transaction files under {CODE_ROOT}"))
     else:
-        out.append(Check(id="D1", category="epistemic", name="Open empirica transactions",
-                         status=SKIP, message="empirica cmd unavailable"))
+        open_txs = sorted((t for t in txs if t["status"] == "open"),
+                          key=lambda t: t["mtime"])
+        cutoff = datetime.now().timestamp() - 86400
+        stale = [t for t in open_txs if t["mtime"] < cutoff]
+        count = len(open_txs)
+        message = f"{count} open"
+        if stale:
+            oldest = stale[0]
+            message += (f" ({len(stale)} older than a day; oldest "
+                        f"{datetime.fromtimestamp(oldest['mtime']):%Y-%m-%d} in {oldest['project']})")
+        if unreadable:
+            message += f"; {unreadable} file(s) unreadable"
+        st = PASS if count <= 1 and not unreadable else WARN
+        out.append(Check(
+            **d1, status=st, message=message,
+            action=None if st == PASS else "close stale via empirica postflight-submit",
+            data={"count": count, "stale": len(stale), "unreadable": unreadable,
+                  "open_in": [t["project"] for t in open_txs]},
+        ))
 
     # D2: memory file freshness
     if MEMORY_DIR.exists():

@@ -34,6 +34,15 @@ def _date_range(days: int) -> list[str]:
     return [(today - timedelta(days=i)).isoformat() for i in range(1, days + 1)]
 
 
+def _latest_plan_date(before: str) -> Optional[str]:
+    """Date of the most recent plan dated strictly before `before`, however old."""
+    dates = sorted(
+        p.name[:10] for p in PLANS_DIR.glob("????-??-??_daily_plan.md")
+        if p.name[:10] < before
+    )
+    return dates[-1] if dates else None
+
+
 def load_plan_data(d: str) -> Optional[dict]:
     """Load and parse a plan file. Returns None if not found or not locked."""
     path = _plan_path(d)
@@ -52,7 +61,11 @@ def analyze_rollover(days: int = 7) -> dict:
 
     Returns:
         {
-          "yesterday": {incomplete_items, completed_items, ...},
+          "yesterday": {incomplete_items, completed_items, ...},  # the rollover
+              source. Named for the usual case; after a gap it is the most
+              recent plan that exists, not the calendar day before today.
+          "source_date": iso date of that plan, or None if there is no earlier plan,
+          "gap_days": days between that plan and today, or None,
           "recurring": [{item, seen_on: [dates], days_rolling: int}, ...],
           "preserved_thoughts": [{thought, date}, ...],
           "satellites": [{entry, date}, ...],
@@ -73,8 +86,19 @@ def analyze_rollover(days: int = 7) -> dict:
         if data:
             all_data[d] = data
 
-    # Yesterday's rollover (primary seed for today)
-    yesterday_data = all_data.get(yesterday, {})
+    # The rollover source (primary seed for today) is the most recent plan that
+    # exists. Usually that is yesterday's. It used to be yesterday's or nothing:
+    # on 2026-10-07 the last plan was 16 days old, so today's plan was seeded
+    # with zero items and that plan's unfinished work was dropped silently.
+    # Recurring items, thoughts and velocity below still read the window only.
+    today_iso = date.today().isoformat()
+    source_date = yesterday if yesterday in all_data else _latest_plan_date(today_iso)
+    yesterday_data = {}
+    if source_date:
+        yesterday_data = all_data.get(source_date) or load_plan_data(source_date) or {}
+        if not yesterday_data:
+            source_date = None
+    gap_days = (date.today() - date.fromisoformat(source_date)).days if source_date else None
 
     # Recurring items: appear as incomplete across multiple days
     item_appearances: dict[str, list[str]] = {}
@@ -120,6 +144,8 @@ def analyze_rollover(days: int = 7) -> dict:
 
     return {
         "yesterday": yesterday_data,
+        "source_date": source_date,
+        "gap_days": gap_days,
         "recurring": recurring,
         "preserved_thoughts": preserved_thoughts,
         "satellites": satellites,
@@ -188,13 +214,27 @@ def build_seed_items(analysis: dict) -> list[str]:
     return seed
 
 
+def rollover_status(seed_count: int, source_date: Optional[str],
+                    gap_days: Optional[int]) -> str:
+    """One line saying what today's plan was seeded from.
+
+    "0 items rolled over" reads as "nothing was pending". After a gap, or with
+    no earlier plan at all, that is a different fact and the line says which.
+    """
+    line = f"{seed_count} items rolled over"
+    if not source_date:
+        return f"{line} (no earlier plan to roll from)"
+    if gap_days and gap_days > 1:
+        return f"{line} from {source_date} ({gap_days} days back)"
+    return line
+
+
 def create_today_from_rollover(days: int = 7, force: bool = False) -> dict:
     """Full pipeline: analyze → seed → create today's plan."""
     import daily_plan as dp
     analysis = analyze_rollover(days=days)
     seed_items = build_seed_items(analysis)
-    yesterday_dates = analysis.get("analysis_dates", [])
-    source_date = yesterday_dates[0] if yesterday_dates else None
+    source_date = analysis.get("source_date")
 
     result = dp.create_today(
         rollover_items=seed_items or None,
@@ -202,6 +242,8 @@ def create_today_from_rollover(days: int = 7, force: bool = False) -> dict:
         force=force,
     )
     result["seed_count"] = len(seed_items)
+    result["rollover_status"] = rollover_status(
+        len(seed_items), source_date, analysis.get("gap_days"))
     result["rollover_analysis"] = analysis
     return result
 
@@ -231,7 +273,7 @@ def main():
         else:
             status = "created" if result.get("created") else "already exists"
             print(f"  Today's plan: {status} — {result.get('path', '?')}")
-            print(f"  Seeds: {result.get('seed_count', 0)} items rolled over")
+            print(f"  Seeds: {result.get('rollover_status', '')}")
         return
 
     analysis = analyze_rollover(days=args.days)
